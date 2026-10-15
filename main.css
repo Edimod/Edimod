@@ -1,0 +1,109 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    cursor: none; /* Całkowicie ukrywamy kursor systemowy na całej stronie */
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    background-color: #ffffff; 
+}
+
+/* Główny kursor */
+.custom-cursor.site-wide {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 60px;
+    height: 60px;
+    pointer-events: none; /* Kursor nie blokuje kliknięć na stronie */
+    opacity: 0; /* Ukryty dopóki myszka nie wejdzie na stronę */
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 9999;
+    
+    background-image: url('normal.png'); 
+    transition: opacity 0.2s ease, background-image 0.1s ease; 
+}
+
+.custom-cursor.visible {
+    opacity: 1;
+}
+
+.custom-cursor.active {
+    animation: cursorBounce 0.2s ease-out;
+}
+
+@keyframes cursorBounce {
+    0% {
+        transform: translate(var(--x), var(--y)) scale(1);
+    }
+    30% {
+        transform: translate(var(--x), var(--y)) scale(0.8);
+    }
+    60% {
+        transform: translate(var(--x), var(--y)) scale(1.3);
+    }
+    100% {
+        transform: translate(var(--x), var(--y)) scale(1);
+    }
+}
+
+.custom-cursor.type-link {
+    background-image: url('link.png');
+}
+.custom-cursor.type-disabled {
+    background-image: url('zb.png');
+}
+
+/* Ukryj systemowy kursor również na linkach i zablokuj pointery dzieciom w nagłówku */
+html, body, a, a * {
+    cursor: none !important;
+}
+
+header a * {
+    pointer-events: none;
+}
+
+/* --- STYL DLA NAPISU POD PASKIEM --- */
+.welcome-container {
+    display: flex;
+    justify-content: center; /* Wyśrodkowanie w poziomie */
+    align-items: flex-start; /* Dosunięcie do góry */
+    width: 100%;
+    padding-top: 80px; /* Odstęp od góry (pasek ma 50px, więc 80px da ładny odstęp pod nim) */
+    text-align: center;
+    user-select: none;
+}
+
+#welcome-text {
+    font-family: Arial, sans-serif;
+    font-size: 70px;
+    font-weight: bold;
+    margin: 0;
+    
+    /* Płynne przejście: Niebieski po jednej stronie, różowy po drugiej, łączące się w środku */
+    background: linear-gradient(90deg, #0051ff 0%, #ff007f 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+}
+
+#welcome-text {
+    font-family: Arial, sans-serif;
+    font-size: 70px;
+    font-weight: bold;
+    margin: 0;
+    
+    /* Płynne przejście: Niebieski po jednej stronie, różowy po drugiej, łączące się w środku */
+    background: linear-gradient(90deg, #0051ff 0%, #ff007f 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+}
