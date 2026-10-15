@@ -141,3 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+// --- DYNAMICZNY TYTUŁ KARTY (Wróć do nas, gdy użytkownik ucieknie z karty) ---
+document.addEventListener('DOMContentLoaded', () => {
+    const originalTitle = document.title; // Zapamiętuje domyślny tytuł (np. "Edimod")
+
+    // Gdy użytkownik opuszcza kartę
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            document.title = "Wróć do nas 😢";
+        } else {
+            document.title = originalTitle; // Przywraca pierwotny tytuł, gdy wraca
+        }
+    });
+});
