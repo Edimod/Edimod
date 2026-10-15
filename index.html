@@ -8,7 +8,7 @@
 </head>
 <body>
 
-    <!-- Czarny pasek -->
+<!-- Czarny pasek -->
     <header style="
         position: fixed;
         top: 0;
@@ -19,6 +19,8 @@
         z-index: 1000;
         display: flex;
         align-items: center;
+        padding-left: 5px;
+        gap: 20px;
     ">
         <!-- Logo i nazwa prowadzące do strony głównej -->
         <a href="index.html" style="
@@ -26,7 +28,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding-left: 5px;
             text-decoration: none;
             position: relative;
             z-index: 1001;
@@ -34,6 +35,18 @@
             <img src="edimod-logo.png" alt="Edimod" style="height: 50px; width: auto;">
             <span style="color: white; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold;">Edimod</span>
         </a>
+
+        <!-- Rozwijane Menu File -->
+        <div class="dropdown">
+            <button class="dropdown-btn">Linki :P<span class="arrow">▼</span></button>
+            <div class="dropdown-content">
+                <a href="https://discord.gg/wVfJD7RbCc" target="_blank">Dołącz do grupy Discord</a>
+                <a href="https://github.com/Edimod" target="_blank">GitHub</a>
+                <a href="https://www.youtube.com/@Edimodoficiall" target="_blank">YouTube</a>
+                <a href="https://www.tiktok.com/@edimod_oficiall" target="_blank">Tiktok</a>
+                <a href="https://edimod.github.io/edimod2/" target="_blank">2 link</a>
+            </div>
+        </div>
     </header>
 
     <!-- Napis na środku ekranu -->
