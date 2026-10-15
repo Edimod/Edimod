@@ -35,20 +35,43 @@ if (cursor) {
     });
 }
 
-// Zmiana kursora po najechaniu na logo lub napis Edimod w headerze
-const logoLink = document.querySelector('header a');
-if (logoLink && cursor) {
-    logoLink.addEventListener('mouseenter', () => {
+// Reakcja kursora na najechanie na linki, przyciski i logo w headerze
+document.addEventListener('mouseover', (e) => {
+    if (!cursor) return;
+    const target = e.target.closest('a, button, .dropdown-btn');
+    if (target) {
         cursor.classList.add('type-link');
-    });
+    }
+});
 
-    logoLink.addEventListener('mouseleave', () => {
+document.addEventListener('mouseout', (e) => {
+    if (!cursor) return;
+    const target = e.target.closest('a, button, .dropdown-btn');
+    if (target) {
         cursor.classList.remove('type-link');
-    });
-}
+    }
+});
 
-// --- NAPIS NA ŚRODKU STRONY (Czasowy / Losowy) ---
+// --- LOGIKA PO ZAŁADOWANIU STRONY ---
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- 1. Obsługa rozwijanego menu "File" ---
+    const dropdown = document.querySelector('.dropdown');
+    const dropdownBtn = document.querySelector('.dropdown-btn');
+
+    if (dropdown && dropdownBtn) {
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('active');
+        });
+
+        // Zamknięcie menu po kliknięciu gdziekolwiek indziej
+        document.addEventListener('click', () => {
+            dropdown.classList.remove('active');
+        });
+    }
+
+    // --- 2. NAPIS NA ŚRODKU STRONY (Czasowy / Losowy) ---
     const textElement = document.getElementById('welcome-text');
     if (!textElement) return;
 
