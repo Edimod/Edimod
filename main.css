@@ -107,3 +107,10 @@ header a * {
     background-clip: text;
     color: transparent;
 }
+/* Styl dla mrocznego napisu (00:00 - 03:30) */
+.midnight-scare {
+    color: #ff0033 !important;
+    text-shadow: 0 0 15px rgba(255, 0, 51, 0.8), 0 0 30px rgba(255, 0, 51, 0.4);
+    letter-spacing: 2px;
+    font-weight: bold;
+}
