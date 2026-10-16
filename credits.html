@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Use - Edimod</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="edimod-logo.png">
+    
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="main.css">
+
+    <style>
+        
+body {
+            background-color: #0d0d0d;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            overflow-y: auto !important; /* Wymusza działanie paska przewijania */
+            height: 100vh;
+        }
+        /* Zostawiamy customowy kursor, ale bez blokowania scrolla */
+        * {
+            cursor: none !important; 
+        }
+        a, button, input {
+            cursor: none !important;
+        }
+        .terms-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: #000000;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #222222;
+        }
+        .terms-logo {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .terms-logo:hover {
+            color: #ff3366;
+        }
+        #language-button {
+            background: #1a1a1a;
+            color: #ffffff;
+            border: 1px solid #333333;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        #language-button:hover {
+            background: #2a2a2a;
+            border-color: #555555;
+            color: #ff3366;
+        }
+        .terms-content {
+            max-width: 800px;
+            margin: 90px auto 50px auto;
+            padding: 35px;
+            background: #111111;
+            border: 1px solid #222222;
+            border-radius: 12px;
+            color: #dddddd;
+            line-height: 1.6;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .terms-content h1 {
+            font-size: 32px;
+            color: #ffffff;
+            margin-top: 0;
+            border-bottom: 2px solid #222222;
+            padding-bottom: 15px;
+        }
+        .terms-content .last-updated {
+            font-size: 13px;
+            color: #888888;
+            margin-bottom: 30px;
+        }
+        .terms-content h2 {
+            font-size: 18px;
+            color: #ffffff;
+            margin-top: 25px;
+            margin-bottom: 8px;
+        }
+        .terms-content p {
+            font-size: 15px;
+            color: #cccccc;
+            margin-bottom: 15px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+            text-decoration: none;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .back-link:hover {
+            background: #252525;
+            border-color: #ff3366;
+            color: #ff3366;
+            transform: translateX(-3px);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Górny pasek -->
+<header class="terms-header">
+    <a href="index.html" class="terms-logo">Edimod</a>
+    <button id="language-button" type="button">🇵🇱 Polski</button>
+</header>
+
+<!-- Główna treść regulaminu -->
+<main class="terms-content">
+    <h1>Kredyty</h1>
+
+    <h2>Główny Autor strony</h2>
+    <p>Skile109 lub nazywany Staszek.</p>
+
+    <h2>Pomysły</h2>
+    <p>Olek Sędek.</p>
+
+    <h2>Czemu to robie</h2>
+    <p>Bo kocham to.</p>
+
+    <h2>Od autora</h2>
+    <p>Ciesze się że moge programować lecz też są momenty kiedy nie wyrabiam XD.</p>
+
+    <h2>Podziękowania dla</h2>
+    <p>Github-a za hosting strony Google oraz inne.</p>
+
+    <h2>Prawa autorskie</h2>
+    <p>Copyringht Edimod 2026© Proszę nie kraść kodu.</p>
+
+    <h2>Dziękujemy za czytanie tego to dużo dla nas znaczy</h2>
+    <p>W kodzie też mogą znaleść się błędy proszę zgłaszać je na edimod95@gmail.com</p>
+
+    <a href="index.html" class="back-link">← Powrót do strony głównej</a>
+</main>
+
+<!-- Skrypt obsługi języka -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const translations = {
+        en: {
+            title: "Credits",
+            updated: "Last updated: October 16, 2026",
+            headings: [
+                "1. Acceptance of Terms",
+                "2. Use of the Website",
+                "3. Intellectual Property",
+                "4. External Links",
+                "5. Disclaimer",
+                "6. Changes to These Terms",
+                "7. Contact"
+            ],
+            paragraphs: [
+                "By accessing the Edimod website, you agree to these Terms of Use.",
+                "You agree to use this website lawfully and not to disrupt its operation.",
+                "Unless otherwise stated, Edimod's original content, logos and designs belong to their respective owners. Do not copy or redistribute them without permission.",
+                "This website may contain links to external services, including Discord, GitHub, YouTube and TikTok. Those services have their own terms and policies.",
+                'This website is provided "as is", without guarantees that it will always be available or error-free.',
+                "These terms may be updated when necessary. The latest version will be published on this page.",
+                "For questions about these terms, contact the Edimod team through our official communication channels."
+            ],
+            back: "← Back to Edimod",
+            button: "🇵🇱 Polski"
+        },
+        pl: {
+            title: "Kredyty",
+            updated: "Ostatnia aktualizacja: 16 października 2026",
+            headings: [
+                "1. Akceptacja warunków",
+                "2. Korzystanie ze strony",
+                "3. Własność intelektualna",
+                "4. Linki zewnętrzne",
+                "5. Zastrzeżenie odpowiedzialności",
+                "6. Zmiany warunków",
+                "7. Kontakt"
+            ],
+            paragraphs: [
+                "Korzystając ze strony Edimod, akceptujesz niniejsze warunki korzystania.",
+                "Zobowiązujesz się korzystać ze strony zgodnie z prawem i nie zakłócać jej działania.",
+                "O ile nie zaznaczono inaczej, oryginalne treści, logotypy i projekty Edimod należą do ich odpowiednich właścicieli. Nie kopiuj ich ani nie rozpowszechniaj bez pozwolenia.",
+                "Strona może zawierać linki do zewnętrznych usług, takich jak Discord, GitHub, YouTube i TikTok. Usługi te mają własne warunki i zasady.",
+                "Strona jest udostępniana w stanie takim, w jakim się znajduje. Nie gwarantujemy jej stałej dostępności ani braku błędów.",
+                "Warunki mogą być aktualizowane w razie potrzeby. Najnowsza wersja będzie publikowana na tej stronie.",
+                "W razie pytań dotyczących tych warunków skontaktuj się z zespołem Edimod przez nasze oficjalne kanały komunikacji."
+            ],
+            back: "← Powrót do Edimod",
+            button: "🇬🇧 English"
+        }
+    };
+
+    let language = "en";
+    const content = document.querySelector(".terms-content");
+    const button = document.getElementById("language-button");
+
+    if (button && content) {
+        button.addEventListener("click", () => {
+            language = language === "en" ? "pl" : "en";
+            const t = translations[language];
+
+            document.documentElement.lang = language;
+            content.querySelector("h1").textContent = t.title;
+            content.querySelector(".last-updated").textContent = t.updated;
+
+            const headings = content.querySelectorAll("h2");
+            headings.forEach((heading, i) => {
+                if (t.headings[i]) heading.textContent = t.headings[i];
+            });
+
+            // Podmieniamy paragrafy treści (pomijamy .last-updated)
+            const paragraphs = Array.from(content.querySelectorAll("p")).filter(p => !p.classList.contains("last-updated"));
+            paragraphs.forEach((p, i) => {
+                if (t.paragraphs[i]) p.textContent = t.paragraphs[i];
+            });
+
+            content.querySelector(".back-link").textContent = t.back;
+            button.textContent = t.button;
+        });
+    }
+});
+</script>
+
+<!-- Customowy kursor -->
+<div class="custom-cursor site-wide"></div>
+
+<!-- Główny skrypt -->
+<script src="main.js"></script>
+
+</body>
+</html>
