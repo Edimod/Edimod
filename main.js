@@ -138,17 +138,70 @@
                     "Cześć!",
                     "Co tam",
                     "Szczęść Boże",
-                    "Join Discorddddd",
                     "Elo",
-                    "Powered by Edimod",
-                    "Nie wiem co tu pisać",
                     "Ooga Booga",
-                    "Zmęczony szkołą co nie"
+                    "Zmęczony szkołą co nie",
+                    "AvA"
                 ];
 
                 const randomIndex = Math.floor(Math.random() * texts.length);
                 const chosenText = texts[randomIndex];
                 textElement.textContent = chosenText;
+
+
+if (chosenText === "AvA") {
+    let isPlaying = false;
+    const audio = new Audio('music.mp3');
+    // Tworzymy zmienną na poziomie warunku, aby była dostępna także w audio.onended
+    let img; 
+
+    textElement.addEventListener('mouseenter', () => {
+        if (customCursor) customCursor.classList.add('type-link');
+    });
+
+    textElement.addEventListener('mouseleave', () => {
+        if (customCursor) customCursor.classList.remove('type-link');
+    });
+
+    textElement.addEventListener('click', () => {
+        if (isPlaying) return;
+        isPlaying = true;
+        audio.currentTime = 0;
+        audio.play().catch(err => console.log("Błąd audio:", err));
+
+        // 1. Tworzymy nowy element obrazka
+        img = new Image();
+
+        // 2. Ustawiamy źródło obrazka
+        img.src = 'ava.png';
+
+        // 3. Ustawiamy szerokość na 60 pikseli (lub 100, jak wolisz)
+        img.width = 120;
+
+        // NOWE: Pozycjonowanie w lewym dolnym rogu ekranu
+        img.style.position = 'fixed';
+        img.style.left = '20px';   // odległość od lewej krawędzi
+        img.style.bottom = '50px'; // odległość od dolnej krawędzi
+        img.style.zIndex = '9999'; // upewnia się, że obrazek jest na wierzchu
+
+        // 4. Wstawiamy obrazek na stronę
+        document.body.appendChild(img);
+
+        // 3. Powrót do normy po zakończeniu dźwięku
+        audio.onended = () => {
+            document.body.style.backgroundImage = "none";
+            document.body.style.backgroundColor = "";
+
+            // NOWE: Usuwanie obrazka ze strony po skończeniu muzyki
+            if (img) {
+                img.remove();
+            }
+
+            isPlaying = false;
+        };
+    });
+}
+
 
 if (chosenText === "Ooga Booga") {
     let isPlaying = false;
