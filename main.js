@@ -143,3 +143,13 @@
         });
     });
 })();
+// --- DŹWIĘK KLIKNIĘCIA ---
+const clickSound = new Audio('click.mp3');
+clickSound.volume = 0.25; // Regulacja głośności (25%)
+
+document.addEventListener('mousedown', () => {
+    clickSound.currentTime = 0;
+    clickSound.play().catch(err => {
+        // Ignoruje blokadę przeglądarki przed pierwszą interakcją
+    });
+});
