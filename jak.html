@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jak robić strony - Edimod</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="edimod-logo.png">
+    
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="main.css">
+
+    <style>
+        body {
+            background-color: #0d0d0d;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            overflow-y: auto !important; /* Wymusza działanie paska przewijania */
+            height: 100vh;
+        }
+        /* Customowy kursor na całej stronie */
+        * {
+            cursor: none !important; 
+        }
+        a, button, input {
+            cursor: none !important;
+        }
+        .terms-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: #000000;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #222222;
+        }
+        .terms-logo {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .terms-logo:hover {
+            color: #ff3366;
+        }
+        .terms-content {
+            max-width: 800px;
+            margin: 90px auto 50px auto;
+            padding: 35px;
+            background: #111111;
+            border: 1px solid #222222;
+            border-radius: 12px;
+            color: #dddddd;
+            line-height: 1.6;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .terms-content h1 {
+            font-size: 32px;
+            color: #ffffff;
+            margin-top: 0;
+            border-bottom: 2px solid #222222;
+            padding-bottom: 15px;
+        }
+        .terms-content h2 {
+            font-size: 18px;
+            color: #ffffff;
+            margin-top: 25px;
+            margin-bottom: 8px;
+        }
+        .terms-content p {
+            font-size: 15px;
+            color: #cccccc;
+            margin-bottom: 15px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+            text-decoration: none;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .back-link:hover {
+            background: #252525;
+            border-color: #ff3366;
+            color: #ff3366;
+            transform: translateX(-3px);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Górny pasek bez przycisku języka -->
+<header class="terms-header">
+    <a href="index.html" class="terms-logo">Edimod</a>
+</header>
+
+<!-- Główna treść Kredytów -->
+<main class="terms-content">
+    <h1>Jak robić strony</h1>
+
+    <h2>HTML</h2>
+    <p>Typie to jest najwaźniejsza struktura plików lecz strona potrzebuje
+        wyglądać ładnie bo surowa strona bez css wygląda okropnie co nie wiec muszimy mieć dodatek-CSS najwaźniejsze da strony jest index.html co to to jest jedyny plik który jest uruchamiany normalnie bez kodu no czyli masz wygląd strony a index.html jest odpalany jako główna strona np.www.html a np.jak dasz link do index2.html to będzie www.html/html2 zapamiętajmy to
+        ale nie zapominajmy że css nie słóży do linków tylko HTML!.</p>
+
+    <h2>CSS</h2>
+    <p>Objaśniłem jak działa do czego jest html no do teraz css to jest jakby nakładka do html to jest narzędzie do upiększania strony to właśnie w nim powinno się dekorować strony lecz jeden main.css powinien trzymać np.2 indexy.html.</p>
+
+    <h2>JavaSCRIPT</h2>
+    <p>To jest dodatek który użytkownik może klikać elementy strony np.ciasteczka takie to wszystko sprawa JS co to są ciasteczka to są informacjie która strona może zapamiętać o tobie bez JS nawet jakbyś przyjoł ciasteczka to by było to bez sensu bo strona i tak by nie mogła zapamiętywać o tobie jesteś na stronie 1 raz opuszczasz i pamięta o tobie a bez JS to jak JS też służy do jak na stronie tej klikasz myszą to podskakuje i jest dzwienk to wszystko od JS więc to są 3 najbardziej podstawowe elementy.</p>
+
+    <h2>Jak powiedziałem już podstawy</h2>
+    <p>to teraz Domena jak hostować strone są tu teraz 3 drogi 1 droga kupujesz domenę np.www.domena.com ale to nie to nie jest tak że możesz zająć strone Microsoft© bo ona już jest zajenta ale hosting takiej strony też jest płatny a jeżei nie będziesz płacił to ją straczisz Większość rejestratorów pozwala opłacić domenę (np. .com, .org czy .pl) z góry na maksymalnie 10 lat. Zmniejsza to ryzyko, że zapomnisz o corocznej płatności. lecz np taka domena.com kosztuje 40 PLN/rok więc jesteś bogaty ta droga pasuje 2 lepsza droga
+        zakładasz konto na Github utworzysz repo nazwiesz je w ustawieniacz i pages możesz mieć strone ale jest BARDZO WAŻNY SZCZEGÓŁ nie wybierasz se tak własną nazwe domeny tylko otrzymujesz NAZWAKONTAGITHUB.Github.io/NAZWAREPO/ my kożystay z tej opcji bo jest najbardziej opłacalna i ostatnia droga też opłacalna ale nie najbardziej to wchodzisz na strone https://www.nazwa.pl/domeny/ i tam powineniesz mieć domeny za 0zł na rok.</p>
+
+    <h2>Dalsze informacjie</h2>
+    <p>Mam domene jakoś i co zrobić no co potrzebujerz hosting i wybrał bym Github© to najlepszy hosting jak zakładasz repo to tam pages I TERAZ Custom domain wpisujesz domene save i muszisz teraz DNS zaceptować .</p>
+
+    <h2>Prawa autorskie</h2>
+    <p>Copyright Edimod 2026© Proszę nie kraść kodu.</p>
+
+    <h2>Dziękujemy za czytanie tego, to dużo dla nas znaczy</h2>
+    <p>Nnie słuchaj się wyłącznie nas bo muszisz się nauczyć programowania.strony to duża odpowiedzialność </p>
+
+    <a href="index.html" class="back-link">← Powrót do strony głównej</a>
+</main>
+
+<!-- Customowy kursor -->
+<div class="custom-cursor site-wide"></div>
+
+<!-- Główny skrypt -->
+<script src="main.js"></script>
+
+</body>
+</html>
