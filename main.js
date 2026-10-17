@@ -1,28 +1,32 @@
 (function () {
     "use strict";
 
-    // --- OBSŁUGA CUSTOMOWEGO KURSORA ---
+    // --- 1. DŹWIĘK KLIKNIĘCIA ---
+    const clickSound = new Audio('click.mp3');
+    clickSound.volume = 0.25;
+
+    document.addEventListener('mousedown', () => {
+        clickSound.currentTime = 0;
+        clickSound.play().catch(err => {});
+    });
+
+    // --- 2. OBSŁUGA CUSTOMOWEGO KURSORA ---
     const customCursor = document.querySelector('.custom-cursor.site-wide');
 
     if (customCursor) {
-        // Śledzenie ruchu myszy po całej stronie
         window.addEventListener('mousemove', (evt) => {
             customCursor.classList.add('visible');
-            
             const x = evt.clientX - 30;
             const y = evt.clientY - 30;
-            
             customCursor.style.setProperty('--x', `${x}px`);
             customCursor.style.setProperty('--y', `${y}px`);
             customCursor.style.transform = `translate(${x}px, ${y}px)`;
         });
 
-        // Ukrywanie kursora po opuszczeniu okna
         document.addEventListener('mouseleave', () => {
             customCursor.classList.remove('visible');
         });
 
-        // Animacja kliknięcia (Podskok)
         document.addEventListener('mousedown', () => {
             customCursor.classList.remove('active');
             void customCursor.offsetWidth; 
@@ -33,7 +37,6 @@
             customCursor.classList.remove('active');
         });
 
-        // Reakcja kursora na najechanie na linki i przyciski
         document.addEventListener('mouseover', (e) => {
             if (e.target.closest('a, button, .dropdown-btn, #language-button')) {
                 customCursor.classList.add('type-link');
@@ -47,10 +50,59 @@
         });
     }
 
-    // --- LOGIKA PO ZAŁADOWANIU STRONY ---
+    // --- 3. LOGIKA PO ZAŁADOWANIU STRONY ---
     document.addEventListener('DOMContentLoaded', () => {
-        
-        // 1. Obsługa rozwijanego menu "File"
+
+        // --- A. SWOBODNE PRZECIĄGANIE OC ---
+        const ocImg = document.getElementById('draggable-oc');
+
+        if (ocImg) {
+            let isDragging = false;
+            let startX = 0, startY = 0;
+            let initialX = 0, initialY = 0;
+
+            window.addEventListener('load', () => {
+                const rect = ocImg.getBoundingClientRect();
+                ocImg.style.left = (window.innerWidth - rect.width - 50) + 'px';
+                ocImg.style.top = (window.innerHeight - rect.height - 50) + 'px';
+                ocImg.style.bottom = 'auto';
+                ocImg.style.right = 'auto';
+            });
+
+            ocImg.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                
+                const rect = ocImg.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                ocImg.style.left = (initialX + dx) + 'px';
+                ocImg.style.top = (initialY + dy) + 'px';
+
+                if (e.clientY < window.innerHeight / 2) {
+                    ocImg.src = 'oc2.jpg';
+                } else {
+                    ocImg.src = 'oc.jpg';
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+        }
+
+        // --- B. Obsługa rozwijanego menu "File" ---
         const dropdown = document.querySelector('.dropdown');
         const dropdownBtn = document.querySelector('.dropdown-btn');
 
@@ -65,7 +117,7 @@
             });
         }
 
-        // 2. Napis na środku strony (dla index.html)
+        // --- C. Napis na środku strony ---
         const textElement = document.getElementById('welcome-text');
         if (textElement) {
             const now = new Date();
@@ -120,7 +172,7 @@
                         document.body.style.backgroundRepeat = "no-repeat";
 
                         audio.currentTime = 0;
-                        audio.play().catch(err => console.log("Błąd audio:", err));
+                        audio.play().catch(err => {});
 
                         audio.onended = () => {
                             document.body.style.backgroundImage = "none";
@@ -132,7 +184,7 @@
             }
         }
 
-        // 3. Dynamiczny tytuł karty ("Wróć do nas")
+        // --- D. Dynamiczny tytuł karty ---
         const originalTitle = document.title;
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
@@ -143,13 +195,3 @@
         });
     });
 })();
-// --- DŹWIĘK KLIKNIĘCIA ---
-const clickSound = new Audio('click.mp3');
-clickSound.volume = 0.25; // Regulacja głośności (25%)
-
-document.addEventListener('mousedown', () => {
-    clickSound.currentTime = 0;
-    clickSound.play().catch(err => {
-        // Ignoruje blokadę przeglądarki przed pierwszą interakcją
-    });
-});
