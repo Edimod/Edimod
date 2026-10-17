@@ -87,7 +87,7 @@ header a * {
     margin: 0;
     
     /* Płynne przejście: Niebieski po jednej stronie, różowy po drugiej, łączące się w środku */
-    background: linear-gradient(90deg, #0051ff 0%, #ff007f 100%);
+    background: linear-gradient(90deg, #0051ff 0%, #ffea00 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -101,7 +101,7 @@ header a * {
     margin: 0;
     
     /* Płynne przejście: Niebieski po jednej stronie, różowy po drugiej, łączące się w środku */
-    background: linear-gradient(90deg, #0051ff 0%, #ff007f 100%);
+    background: linear-gradient(90deg, #ff0000 0%, #ffbb00 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
