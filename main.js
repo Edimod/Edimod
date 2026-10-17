@@ -150,37 +150,51 @@
                 const chosenText = texts[randomIndex];
                 textElement.textContent = chosenText;
 
-                if (chosenText === "Ooga Booga") {
-                    let isPlaying = false;
-                    const audio = new Audio('ooga-booga-spooky-month.mp3');
+if (chosenText === "Ooga Booga") {
+    let isPlaying = false;
+    const audio = new Audio('ooga-booga-spooky-month.mp3');
 
-                    textElement.addEventListener('mouseenter', () => {
-                        if (customCursor) customCursor.classList.add('type-link');
-                    });
+    textElement.addEventListener('mouseenter', () => {
+        if (customCursor) customCursor.classList.add('type-link');
+    });
 
-                    textElement.addEventListener('mouseleave', () => {
-                        if (customCursor) customCursor.classList.remove('type-link');
-                    });
+    textElement.addEventListener('mouseleave', () => {
+        if (customCursor) customCursor.classList.remove('type-link');
+    });
 
-                    textElement.addEventListener('click', () => {
-                        if (isPlaying) return;
-                        isPlaying = true;
+    textElement.addEventListener('click', () => {
+        if (isPlaying) return;
+        isPlaying = true;
 
-                        document.body.style.backgroundImage = "url('Oogabooga.png')";
-                        document.body.style.backgroundSize = "cover";
-                        document.body.style.backgroundPosition = "center";
-                        document.body.style.backgroundRepeat = "no-repeat";
+        // 1. Zmiana tła na grafikę Ooga Booga
+        document.body.style.backgroundImage = "url('Oogabooga.png')";
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+        document.body.style.backgroundRepeat = "no-repeat";
 
-                        audio.currentTime = 0;
-                        audio.play().catch(err => {});
+        // 2. Zmiana duszka OC na oc3.jpg na czas trwania easter egga
+        const ocImg = document.getElementById('draggable-oc');
+        if (ocImg) {
+            ocImg.src = 'oc3.jpg';
+        }
 
-                        audio.onended = () => {
-                            document.body.style.backgroundImage = "none";
-                            document.body.style.backgroundColor = "";
-                            isPlaying = false;
-                        };
-                    });
-                }
+        audio.currentTime = 0;
+        audio.play().catch(err => console.log("Błąd audio:", err));
+
+        // 3. Powrót do normy po zakończeniu dźwięku
+        audio.onended = () => {
+            document.body.style.backgroundImage = "none";
+            document.body.style.backgroundColor = "";
+            
+            // Przywracamy zwykły wygląd OC
+            if (ocImg) {
+                ocImg.src = 'oc.jpg';
+            }
+
+            isPlaying = false;
+        };
+    });
+}
             }
         }
 
