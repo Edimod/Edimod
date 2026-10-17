@@ -79,4 +79,24 @@
 
     <script src="main.js"></script>
 </body>
+<!-- Przeciągalne OC -->
+<img id="draggable-oc" src="oc.jpg" alt="OC Image" class="draggable-oc" draggable="false">
+
+<style>
+    .draggable-oc {
+        position: absolute; /* Używamy absolute, żeby mógł swobodnie wędrować po stronie */
+        bottom: 50px;
+        right: 50px;
+        width: 120px;
+        height: auto;
+        z-index: 9999;
+        cursor: grab; /* Ładny kursor chwytania */
+        user-select: none;
+        -webkit-user-drag: none;
+    }
+    .draggable-oc:active {
+        cursor: grabbing;
+    }
+</style>  
+</body>
 </html>
