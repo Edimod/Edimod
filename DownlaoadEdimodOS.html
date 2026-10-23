@@ -1,0 +1,26 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Pobieranie</title>
+    <style>
+        body {
+            background: white;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        window.onload = function() {
+            const link = document.createElement("a");
+            link.href = "odio el chocolate.mp4";
+            link.download = "odio el chocolate.mp4";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        };
+    </script>
+</body>
+</html>
