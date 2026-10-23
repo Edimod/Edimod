@@ -1,4 +1,26 @@
 (function () {
+    'use strict';
+
+    // --- 0. REJESTRACJA SERVICE WORKERA EDIMOD PWA ---
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/Edimod/sw.js', {
+                scope: '/Edimod/'
+            })
+            .then((reg) => {
+                console.log('Edimod PWA gotowe!', reg);
+            })
+            .catch((err) => {
+                console.error('Błąd rejestracji Service Workera:', err);
+            });
+        });
+    }
+
+    // Tutaj pozostaje cała reszta Twojego dotychczasowego kodu.
+
+})();
+
+    
     "use strict";
 
     // --- 1. DŹWIĘK KLIKNIĘCIA ---
