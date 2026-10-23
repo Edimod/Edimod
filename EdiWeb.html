@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdiWeb - Wyszukiwarka</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="edimod-logo.png">
+
+    <style>
+        /* Reset i podstawowe style */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Ukrycie systemowego kursora na całej stronie */
+        html, body, a, button, input {
+            cursor: none !important;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #ffffff;
+            padding: 20px;
+        }
+
+        /* WŁASNY KURSOR - dokładnie takie same wymiary jak na index.html */
+        .custom-cursor.site-wide {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 48px;  /* Jeśli ma być jeszcze większy, zwiększ np. do 64px */
+            height: 48px; /* Jeśli ma być jeszcze większy, zwiększ np. do 64px */
+            background-image: url('normal.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            z-index: 999999;
+            transform: translate(0, 0);
+        }
+
+        /* Podmiana na kursor dla linków */
+        .custom-cursor.hovered {
+            background-image: url('link.png');
+        }
+
+        /* Czarny pasek na samej górze strony */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: #000;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            gap: 20px;
+        }
+
+        /* Sekcja główna / powitalna */
+        .search-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 584px;
+            margin-top: 15vh;
+            transition: margin-top 0.3s ease;
+        }
+
+        /* Styl po wyszukaniu - przenosi pasek na górę */
+        body.searched .search-wrapper {
+            margin-top: 70px;
+            max-width: 652px;
+            align-self: flex-start;
+            flex-direction: row;
+            gap: 20px;
+        }
+
+        /* Logo EdiWeb */
+        .logo {
+            font-size: 40px;
+            font-weight: bold;
+            color: #c36e00;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        body.searched .logo {
+            font-size: 24px;
+            margin-bottom: 0;
+        }
+
+        /* Formularz i pasek wyszukiwania */
+        .search-form {
+            width: 100%;
+            display: flex;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 16px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            outline: none;
+            box-shadow: none;
+            transition: box-shadow 0.2s;
+        }
+
+        .search-input:hover, .search-input:focus {
+            box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+            border-color: rgba(223,225,229,0);
+        }
+
+        /* Przyciski pod wyszukiwarką */
+        .buttons-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        body.searched .buttons-container {
+            display: none;
+        }
+
+        .btn {
+            background-color: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            border-radius: 4px;
+            color: #3c4043;
+            font-size: 14px;
+            padding: 10px 16px;
+        }
+
+        .btn:hover {
+            border: 1px solid #dadce0;
+            color: #202124;
+        }
+
+        /* Sekcja wyników wyszukiwania */
+        .results-container {
+            display: none;
+            width: 100%;
+            max-width: 652px;
+            margin-top: 30px;
+            align-self: flex-start;
+        }
+
+        body.searched .results-container {
+            display: block;
+        }
+
+        .result-item {
+            margin-bottom: 28px;
+            max-width: 600px;
+        }
+
+        .result-url {
+            font-size: 12px;
+            color: #202124;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .result-title {
+            font-size: 20px;
+            color: #1a0dab;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+
+        .result-title:hover {
+            text-decoration: underline;
+        }
+
+        .result-snippet {
+            font-size: 14px;
+            color: #4d5156;
+            line-height: 1.58;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Element własnego kursora -->
+    <div class="custom-cursor site-wide" id="customCursor"></div>
+
+    <!-- Czarny pasek (Nagłówek) -->
+    <header>
+        <!-- Logo i nazwa bez linku -->
+        <div style="height: 50px; display: flex; align-items: center; gap: 10px; position: relative; z-index: 1001;">
+            <img src="edimod-logo.png" alt="Edimod" style="height: 40px; width: auto;">
+            <span style="color: white; font-family: Arial, sans-serif; font-size: 22px; font-weight: bold;">Edimod</span>
+        </div>
+    </header>
+
+    <!-- Panel wyszukiwania -->
+    <div class="search-wrapper">
+        <div class="logo">EdiWeb</div>
+        
+        <form class="search-form" id="searchForm" onsubmit="handleSearch(event)">
+            <input type="text" class="search-input" id="searchInput" placeholder="Szukaj w internecie..." required>
+        </form>
+
+        <div class="buttons-container">
+            <button type="submit" form="searchForm" class="btn">Szukaj w EdiWeb</button>
+            <button type="button" class="btn" onclick="alert('Przycisk w trakcie konfiguracji.')">Szczęśliwy traf</button>
+        </div>
+    </div>
+
+    <!-- Wyniki wyszukiwania -->
+    <div class="results-container">
+        
+        <!-- Wynik 1 -->
+        <div class="result-item">
+            <span class="result-url">https://youtube.com</span>
+            <a href="https://youtube.com" target="_blank" class="result-title">YouTube - Oglądaj filmy i muzykę</a>
+            <p class="result-snippet">Udostępniaj filmy znajomym, rodzinie i całemu światu. Tutaj znajdziesz najnowsze teledyski, wiadomości i rozrywkę.</p>
+        </div>
+
+        <!-- Wynik 2 -->
+        <div class="result-item">
+            <span class="result-url">https://pl.wikipedia.org/wiki/Edimod</span>
+            <a href="https://pl.wikipedia.org/wiki/Edimod" target="_blank" class="result-title">Edimod – Wikipedia, wolna encyklopedia</a>
+            <p class="result-snippet">Oficjalne źródła. edytuj. • Oficjalna strona internetowa: https://edimod.github.io/Edimod/. GitHub: https://github.com/Edimod/; YouTube — https://www ... Przegląd od AI</p>
+        </div>
+
+        <!-- Wynik 3 -->
+        <div class="result-item">
+            <span class="result-url">https://github.com</span>
+            <a href="https://github.com" target="_blank" class="result-title">GitHub: Let's build from here</a>
+            <p class="result-snippet">Platforma programistyczna umożliwiająca deweloperom hostowanie kodu, zarządzanie projektami i współpracę.</p>
+        </div>
+
+    </div>
+
+    <script>
+        // Obsługa wyszukiwania
+        function handleSearch(event) {
+            event.preventDefault(); 
+            const query = document.getElementById('searchInput').value.trim();
+            
+            if (query !== "") {
+                document.body.classList.add('searched');
+            }
+        }
+
+        // Obsługa sterowania kursorem
+        const cursor = document.getElementById('customCursor');
+
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+
+            // Sprawdzanie czy kursor jest nad przyciskiem/linkiem
+            const target = e.target;
+            const isClickable = target.closest('a, button, input, [role="button"]');
+
+            if (isClickable) {
+                cursor.classList.add('hovered');
+            } else {
+                cursor.classList.remove('hovered');
+            }
+        });
+    </script>
+
+</body>
+</html>
