@@ -141,7 +141,8 @@
                     "Elo",
                     "Ooga Booga",
                     "Zmęczony szkołą co nie",
-                    "AvA"
+                    "AvA",
+                    "odio el chocolate"
                 ];
 
                 const randomIndex = Math.floor(Math.random() * texts.length);
@@ -199,6 +200,87 @@ if (chosenText === "AvA") {
 
             isPlaying = false;
         };
+    });
+}
+
+if (chosenText === 'odio el chocolate') {
+    let isPlaying = false;
+    
+    const videoBg = document.createElement('video');
+    videoBg.src = 'odio el chocolate.mp4';
+    videoBg.style.position = 'fixed';
+    videoBg.style.top = '0';
+    videoBg.style.left = '0';
+    videoBg.style.width = '100vw';
+    videoBg.style.height = '100vh';
+    
+    // --- POPRAWKA PRZYCINANIA ---
+    // contain sprawi, że całe wideo będzie widoczne bez ucinania góry i dołu
+    videoBg.style.objectFit = 'contain'; 
+    // Dodajemy czarne tło dla wideo na wypadek, gdyby ekran miał inne proporcje niż film
+    videoBg.style.backgroundColor = 'black'; 
+    
+    videoBg.style.zIndex = '-1'; 
+    videoBg.style.pointerEvents = 'none';
+    
+    // --- WYDŁUŻENIE CZASU ---
+    // Włączamy zapętlenie, aby wideo nie wyłączyło się za wcześnie, jeśli plik jest krótki
+    videoBg.loop = true; 
+
+    textElement.addEventListener('mouseenter', () => {
+        if (customCursor) customCursor.classList.add('type-link');
+    });
+
+    textElement.addEventListener('mouseleave', () => {
+        if (customCursor) customCursor.classList.remove('type-link');
+    });
+
+    textElement.addEventListener('click', () => {
+        if (isPlaying) return;
+        isPlaying = true;
+
+        const originalBodyBg = document.body.style.backgroundColor;
+        const originalHtmlBg = document.documentElement.style.backgroundColor;
+        const originalBodyImg = document.body.style.backgroundImage;
+        
+        document.body.style.backgroundColor = 'transparent';
+        document.documentElement.style.backgroundColor = 'transparent';
+        document.body.style.backgroundImage = 'none';
+
+        document.body.appendChild(videoBg);
+        
+        const ocImg = document.getElementById('draggable-oc');
+        if (ocImg) {
+            ocImg.src = 'oc3.jpg';
+        }
+
+        videoBg.currentTime = 0;
+        videoBg.play().catch(err => console.log("Błąd wideo:", err));
+
+        // --- FUNKCJA KOŃCZĄCA EASTER EGGA ---
+        const endEasterEgg = () => {
+            videoBg.pause(); // Zatrzymujemy odtwarzanie
+            
+            if (videoBg.parentNode) {
+                videoBg.parentNode.removeChild(videoBg);
+            }
+
+            document.body.style.backgroundColor = originalBodyBg;
+            document.documentElement.style.backgroundColor = originalHtmlBg;
+            document.body.style.backgroundImage = originalBodyImg;
+
+            if (ocImg) {
+                ocImg.src = 'oc.jpg';
+            }
+            
+            isPlaying = false;
+        };
+
+        // --- USTAWIANIE CZASU TRWANIA ---
+        // Zamiast czekać na koniec pliku (videoBg.onended), ustawiamy własny licznik.
+        // Wpisz poniżej czas w milisekundach (np. 10000 to 10 sekund animacji)
+        const czasTrwaniaWMilisekundach = 14000; 
+        setTimeout(endEasterEgg, czasTrwaniaWMilisekundach);
     });
 }
 
