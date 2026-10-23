@@ -45,10 +45,12 @@
             <img src="edimod-logo.png" alt="Edimod" style="height: 50px; width: auto;">
             <span style="color: white; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold;">Edimod</span>
         </a>
-
+      
         <!-- Rozwijane Menu File -->
         <div class="dropdown">
-            <button class="dropdown-btn">Linki :P<span class="arrow">▼</span></button>
+            <button class="dropdown-btn">Linki :P<span class="arrow"></span></button>
+            
+
             <div class="dropdown-content">
                 <a href="https://discord.gg/wVfJD7RbCc" target="_blank">Dołącz do grupy Discord</a>
                 <a href="https://github.com/Edimod" target="_blank">GitHub</a>
@@ -56,6 +58,8 @@
                 <a href="https://www.tiktok.com/@edimod_oficiall" target="_blank">Tiktok</a>
                 <a href="https://edimod.github.io/edimod2/" target="_blank">Produkty Edimod</a>
                 <a href="https://m.youtube.com/shorts/jhKTD-392oc?is=bsYXGhq7hDuwu3F7" target="_blank">Nie klikaj zabraniam</a>
+                <a href="EdiWeb.html" target="_blank">EdiWeb Beta</a>
+
             </div>
         </div>
     </header>
@@ -84,6 +88,54 @@
 <img id="draggable-oc" src="oc.jpg" alt="OC Image" class="draggable-oc" draggable="false">
 
 <style>
+
+        /* TUTAJ JEST CSS, KTÓRY PRZESUWA GUZIK */
+        .guzik-prawy-gorny {
+            position: fixed;   /* Przykleja guzik do ekranu */
+            top: 10px;         /* Odstęp od samej góry */
+            right: 10px;       /* Odstęp od prawej krawędzi */
+            z-index: 9999;     /* Sprawia, że guzik jest na wierzchu */
+
+            /* Styl wyglądu guzika */
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+
+        .guzik-prawy-gorny:hover {
+            background-color: #0056b3; /* Kolor po najechaniu myszką */
+        }
+
+
+.guzik-prawy-gorny {
+  position: fixed;      /* Przykleja przycisk do ekranu w jednym miejscu */
+  top: 20px;            /* Odstęp od górnej krawędzi ekranu */
+  right: 20px;          /* Odstęp od prawej krawędzi ekranu */
+  z-index: 9999;        /* Sprawia, że przycisk zawsze będzie na wierzchu i nic go nie zasłoni */
+
+  /* Wygląd przycisku (możesz dowolnie zmieniać kolory) */
+  background-color: #007bff; /* Niebieski kolor tła */
+  color: #ffffff;            /* Biały kolor tekstu */
+  padding: 12px 24px;        /* Wielkość przycisku (góra/dół, lewo/prawo) */
+  text-decoration: none;     /* Usuwa podkreślenie linku */
+  border-radius: 5px;        /* Lekkie zaokrąglenie rogów */
+  font-family: sans-serif;   /* Prosty, nowoczesny font */
+  font-weight: bold;         /* Pogrubiony tekst */
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Delikatny cień pod guzikiem */
+  transition: 0.2s;          /* Płynne przejście przy najechaniu myszką */
+}
+
+/* Efekt po najechaniu myszką */
+.guzik-prawy-gorny:hover {
+  background-color: #0056b3; /* Ciemniejszy odcień niebieskiego */
+  transform: scale(1.05);    /* Minimalne powiększenie guzika */
+}
+
+
     .draggable-oc {
         position: absolute; /* Używamy absolute, żeby mógł swobodnie wędrować po stronie */
         bottom: 50px;
