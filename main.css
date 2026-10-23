@@ -376,3 +376,16 @@ a, button, input {
     pointer-events: none;
     z-index: 99999;
 }
+.przycisk-prawy-gora {
+  position: absolute;   /* Ustawia pozycję względem góry strony */
+  top: 20px;            /* Odstęp od samej góry */
+  right: 20px;          /* Odstęp od prawej krawędzi */
+  
+  /* Wygląd guzika (możesz zmienić pod siebie) */
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+}
