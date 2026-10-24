@@ -157,12 +157,49 @@
                     "Ooga Booga",
                     "Zmęczony szkołą co nie",
                     "AvA",
-                    "odio el chocolate"
+                    "odio el chocolate",
+                    "Skype"
                 ];
 
                 const randomIndex = Math.floor(Math.random() * texts.length);
                 const chosenText = texts[randomIndex];
                 textElement.textContent = chosenText;
+
+                if (chosenText === "Skype") {
+                    let isPlaying = false;
+                    const audio = new Audio('skype.mp3');
+
+                    textElement.addEventListener('mouseenter', () => {
+                        if (customCursor) customCursor.classList.add('type-link');
+                    });
+
+                    textElement.addEventListener('mouseleave', () => {
+                        if (customCursor) customCursor.classList.remove('type-link');
+                    });
+
+                    textElement.addEventListener('click', () => {
+                        if (isPlaying) return;
+                        isPlaying = true;
+
+                        document.body.style.backgroundImage = "url('skype.png')";
+                        document.body.style.backgroundSize = "cover";
+                        document.body.style.backgroundPosition = "center";
+                        document.body.style.backgroundRepeat = "no-repeat";
+
+                        const ocImg = document.getElementById('draggable-oc');
+                        if (ocImg) ocImg.src = 'oc3.jpg';
+
+                        audio.currentTime = 0;
+                        audio.play().catch(err => console.log("Błąd audio:", err));
+
+                        audio.onended = () => {
+                            document.body.style.backgroundImage = "none";
+                            document.body.style.backgroundColor = "";
+                            if (ocImg) ocImg.src = 'oc.jpg';
+                            isPlaying = false;
+                        };
+                    });
+                }
 
                 if (chosenText === "AvA") {
                     let isPlaying = false;
@@ -201,6 +238,9 @@
                         };
                     });
                 }
+
+                
+                
 
                 if (chosenText === 'odio el chocolate') {
                     let isPlaying = false;
@@ -257,7 +297,7 @@
                             isPlaying = false;
                         };
 
-                        setTimeout(endEasterEgg, 14000);
+                        setTimeout(endEasterEgg, 40000);
                     });
                 }
 
