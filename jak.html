@@ -146,5 +146,22 @@
 <!-- Główny skrypt -->
 <script src="main.js"></script>
 
+<!-- Przeciągalny obrazek OC -->
+<img id="draggable-oc" src="oc.jpg" alt="OC Image" class="draggable-oc" draggable="false">
+
+<style>
+    .draggable-oc {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        width: 250px; /* Zmień rozmiar wedle uznania */
+        height: auto;
+        z-index: 9999;
+        user-select: none;
+        -webkit-user-drag: none;
+        transition: transform 0.1s ease-out;
+    }
+</style>
+
 </body>
 </html>
