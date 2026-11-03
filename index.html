@@ -1,59 +1,123 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-
-<link rel="manifest" href="/Edimod/manifest.json">
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edimod</title>
     
-    <!-- TUTAJ DODAJESZ FAVICON -->
+    <link rel="manifest" href="/Edimod/manifest.json">
     <link rel="icon" type="image/png" href="edimod-logo.png">
+    <link rel="stylesheet" href="main.css">
 
-    <link rel="stylesheet" href="main.css">
-</head>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edimod</title>
-    <link rel="stylesheet" href="main.css">
+    <style>
+        /* Nagłówek i pasek górny */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: #000;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding-left: 5px;
+            gap: 20px;
+        }
+
+        /* Sekcja z kwadratowymi kartami na środku */
+        .cards-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px; /* Odstęp między kwadratami */
+            margin: 60px auto 40px auto; /* Marginesy dookoła sekcji */
+            max-width: 600px;
+            padding: 0 20px;
+        }
+
+        .main-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 140px;          /* Zmniejszony wymiar */
+            height: 140px;         /* Idealny kwadrat */
+            background-color: #ffffff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #2c3e50;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .main-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .card-icon {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+        }
+
+        /* Prawy górny guzik */
+        .guzik-prawy-gorny {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 9999;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-family: sans-serif;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: 0.2s;
+        }
+
+        .guzik-prawy-gorny:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        /* Przeciągalny OC */
+        .draggable-oc {
+            position: absolute;
+            bottom: 50px;
+            right: 50px;
+            width: 120px;
+            height: auto;
+            z-index: 9999;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .draggable-oc:active {
+            cursor: grabbing;
+        }
+    </style>
 </head>
 <body>
 
-<!-- Czarny pasek -->
-    <header style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 50px;
-        background: #000;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        padding-left: 5px;
-        gap: 20px;
-    ">
-        <!-- Logo i nazwa prowadzące do strony głównej -->
-        <a href="index.html" style="
-            height: 50px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            position: relative;
-            z-index: 1001;
-        ">
+    <!-- Górny czarny pasek -->
+    <header>
+        <a href="index.html" style="height: 50px; display: flex; align-items: center; gap: 10px; text-decoration: none; position: relative; z-index: 1001;">
             <img src="edimod-logo.png" alt="Edimod" style="height: 50px; width: auto;">
             <span style="color: white; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold;">Edimod</span>
         </a>
       
-        <!-- Rozwijane Menu File -->
+        <!-- Rozwijane Menu -->
         <div class="dropdown">
             <button class="dropdown-btn">Linki :P<span class="arrow"></span></button>
-            
-
             <div class="dropdown-content">
                 <a href="https://discord.gg/wVfJD7RbCc" target="_blank">Dołącz do grupy Discord</a>
                 <a href="https://github.com/Edimod" target="_blank">GitHub</a>
@@ -62,97 +126,44 @@
                 <a href="https://edimod.github.io/edimod2/" target="_blank">Produkty Edimod</a>
                 <a href="https://m.youtube.com/shorts/jhKTD-392oc?is=bsYXGhq7hDuwu3F7" target="_blank">Nie klikaj zabraniam</a>
                 <a href="EdiWeb.html" target="_blank">EdiWeb Beta</a>
-
             </div>
         </div>
     </header>
 
-    <!-- Napis na środku ekranu -->
+    <!-- Powitanie na środku -->
     <div class="welcome-container">
         <h1 id="welcome-text"></h1>
     </div>
 
-    <!-- Twój własny kursor -->
+    <!-- DWA KWADRATY NA ŚRODKU STRONY (Gry + Produkty) -->
+    <div class="cards-container">
+        <a href="gry.html" class="main-card">
+            <span class="card-icon">🎮</span>
+            <span>Gry</span>
+        </a>
+
+        <!-- Tutaj wpisz swój własny link w href="" -->
+        <a href="https://edimod.github.io/edimod2/" class="main-card" target="_blank">
+            <span class="card-icon">📦</span>
+            <span>Produkty</span>
+        </a>
+    </div>
+
+    <!-- Przeciągalny OC -->
+    <img id="draggable-oc" src="oc.jpg" alt="OC Image" class="draggable-oc" draggable="false">
+
+    <!-- Własny kursor -->
     <div class="custom-cursor site-wide"></div>
 
-
-<footer class="site-footer">
-    <span>© 2026 Edimod</span>
-    <a href="terms.html">Terms of Use</a>
-    <a href="credits.html">credits</a>
-    <a href="jak.html">Typie jak ty robisz?</a>
-    <a href="no.html">no.</a>
-</footer>
-
+    <!-- Stopka z napisami na dole -->
+    <footer class="site-footer">
+        <span>© 2026 Edimod</span>
+        <a href="terms.html">Terms of Use</a>
+        <a href="credits.html">credits</a>
+        <a href="jak.html">Typie jak ty robisz?</a>
+        <a href="no.html">no.</a>
+    </footer>
 
     <script src="main.js"></script>
-</body>
-<!-- Przeciągalne OC -->
-<img id="draggable-oc" src="oc.jpg" alt="OC Image" class="draggable-oc" draggable="false">
-
-<style>
-
-        /* TUTAJ JEST CSS, KTÓRY PRZESUWA GUZIK */
-        .guzik-prawy-gorny {
-            position: fixed;   /* Przykleja guzik do ekranu */
-            top: 10px;         /* Odstęp od samej góry */
-            right: 10px;       /* Odstęp od prawej krawędzi */
-            z-index: 9999;     /* Sprawia, że guzik jest na wierzchu */
-
-            /* Styl wyglądu guzika */
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-        }
-
-        .guzik-prawy-gorny:hover {
-            background-color: #0056b3; /* Kolor po najechaniu myszką */
-        }
-
-
-.guzik-prawy-gorny {
-  position: fixed;      /* Przykleja przycisk do ekranu w jednym miejscu */
-  top: 20px;            /* Odstęp od górnej krawędzi ekranu */
-  right: 20px;          /* Odstęp od prawej krawędzi ekranu */
-  z-index: 9999;        /* Sprawia, że przycisk zawsze będzie na wierzchu i nic go nie zasłoni */
-
-  /* Wygląd przycisku (możesz dowolnie zmieniać kolory) */
-  background-color: #007bff; /* Niebieski kolor tła */
-  color: #ffffff;            /* Biały kolor tekstu */
-  padding: 12px 24px;        /* Wielkość przycisku (góra/dół, lewo/prawo) */
-  text-decoration: none;     /* Usuwa podkreślenie linku */
-  border-radius: 5px;        /* Lekkie zaokrąglenie rogów */
-  font-family: sans-serif;   /* Prosty, nowoczesny font */
-  font-weight: bold;         /* Pogrubiony tekst */
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Delikatny cień pod guzikiem */
-  transition: 0.2s;          /* Płynne przejście przy najechaniu myszką */
-}
-
-/* Efekt po najechaniu myszką */
-.guzik-prawy-gorny:hover {
-  background-color: #0056b3; /* Ciemniejszy odcień niebieskiego */
-  transform: scale(1.05);    /* Minimalne powiększenie guzika */
-}
-
-
-    .draggable-oc {
-        position: absolute; /* Używamy absolute, żeby mógł swobodnie wędrować po stronie */
-        bottom: 50px;
-        right: 50px;
-        width: 120px;
-        height: auto;
-        z-index: 9999;
-        cursor: grab; /* Ładny kursor chwytania */
-        user-select: none;
-        -webkit-user-drag: none;
-    }
-    .draggable-oc:active {
-        cursor: grabbing;
-    }
-</style>  
 </body>
 </html>
