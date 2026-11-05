@@ -389,3 +389,34 @@ a, button, input {
   border-radius: 5px;
   font-weight: bold;
 }
+/* Upewnij się, że kontener i karty mają wymuszoną widoczność */
+.cards-container {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin: 80px auto 40px auto; /* Większy margines od góry, aby nie chowały się pod fixed headerem */
+    max-width: 600px;
+    padding: 0 20px;
+}
+
+.main-card {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 140px;
+    height: 140px;
+    background-color: #ffffff;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    text-decoration: none;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
