@@ -351,23 +351,3 @@
     });
 
 })();
-.cards-container {
-    position: fixed !important;
-    top: 180px !important;
-    left: 0 !important;
-    right: 0 !important;
-    display: flex !important;
-    justify-content: center !important;
-    gap: 20px !important;
-    z-index: 5000 !important;
-}
-
-.main-card {
-    display: flex !important;
-    width: 140px !important;
-    height: 140px !important;
-    background: red !important;
-    border: 3px solid blue !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
