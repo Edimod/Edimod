@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guess The Number - Aero</title>
+<style>
+* { box-sizing:border-box }
+
+body {
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:"Segoe UI",Tahoma,sans-serif;
+  color:#172b40;
+  background:
+    radial-gradient(ellipse at 50% 110%,#b6e9f3 0%,transparent 48%),
+    radial-gradient(ellipse at 15% 15%,#c5eafa,transparent 45%),
+    linear-gradient(145deg,#397eb1,#164d83 55%,#082e5c);
+  overflow:hidden;
+}
+
+/* Desktop wallpaper */
+body:before {
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 80% 20%,#ffffff50,transparent 25%),
+    linear-gradient(160deg,transparent 45%,#ffffff12 46%,transparent 65%);
+  pointer-events:none;
+}
+
+.window {
+  width:min(94%,450px);
+  border:1px solid #e5f7ff;
+  border-radius:9px;
+  padding:2px;
+  background:linear-gradient(130deg,#ffffffd9,#8cc8f5a8,#ffffffa0);
+  box-shadow:0 18px 55px #001b3977,0 2px 4px #fff9 inset;
+}
+
+.titlebar {
+  height:39px;
+  display:flex;
+  align-items:center;
+  padding:0 7px 0 12px;
+  color:white;
+  font-size:13px;
+  font-weight:600;
+  text-shadow:0 1px 3px #173d65;
+  background:linear-gradient(180deg,#a8dafa 0%,#4d99d0 30%,#2769a7 52%,#3986c1 85%,#8dc8eb);
+  border-radius:6px 6px 0 0;
+  border-bottom:1px solid #d8f1ff;
+}
+
+.app-icon {
+  margin-right:9px;
+  font-size:17px;
+}
+
+.window-buttons {
+  margin-left:auto;
+  display:flex;
+  gap:3px;
+}
+
+.win-btn {
+  width:27px;
+  height:23px;
+  padding:0;
+  border:1px solid #d7f2ff;
+  border-radius:3px;
+  background:linear-gradient(#b7e2fa,#438ac2);
+  color:white;
+  font-size:12px;
+  cursor:pointer;
+  box-shadow:inset 0 1px #fff9;
+}
+
+.win-btn.close {
+  background:linear-gradient(#ffb5a4,#db442c 55%,#a91d14);
+  width:43px;
+}
+
+.content {
+  background:linear-gradient(145deg,#f8fcffed,#d7eafaed);
+  padding:25px 27px;
+  border-radius:0 0 6px 6px;
+  border:1px solid #fff;
+  text-align:center;
+}
+
+h1 {
+  font-size:27px;
+  font-weight:400;
+  color:#245c91;
+  margin:5px 0 7px;
+  text-shadow:0 1px white;
+}
+
+.subtitle {
+  font-size:13px;
+  color:#526c82;
+  margin-bottom:24px;
+}
+
+.separator {
+  height:1px;
+  background:linear-gradient(90deg,transparent,#9cbad1,transparent);
+  margin:18px 0;
+}
+
+.number-box {
+  background:linear-gradient(#fff,#edf7ff);
+  border:1px solid #a6c6df;
+  border-radius:4px;
+  padding:18px;
+  box-shadow:inset 0 1px 4px #6d9cbb33;
+}
+
+input {
+  width:100%;
+  height:43px;
+  border:1px solid #91afc8;
+  border-radius:3px;
+  background:white;
+  font:20px "Segoe UI";
+  text-align:center;
+  color:#244d70;
+  outline:none;
+  box-shadow:inset 0 1px 3px #0002;
+}
+
+input:focus {
+  border-color:#378bc9;
+  box-shadow:0 0 4px #53a9e9;
+}
+
+button {
+  font-family:"Segoe UI",sans-serif;
+}
+
+.main-btn {
+  margin-top:11px;
+  width:100%;
+  height:39px;
+  border:1px solid #4385b5;
+  border-radius:4px;
+  background:linear-gradient(#f3fbff 0%,#c8e8fa 45%,#78b6df 50%,#a5d3ee);
+  color:#16456b;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  text-shadow:0 1px white;
+  box-shadow:inset 0 1px white,0 1px 2px #0002;
+}
+
+.main-btn:hover {
+  background:linear-gradient(#fff,#d9f1ff 45%,#9dd8fa 50%,#b9e5ff);
+}
+
+.main-btn:active {
+  background:linear-gradient(#8bbddd,#d3edfa);
+}
+
+#message {
+  min-height:31px;
+  margin:16px 0 5px;
+  font-size:19px;
+  font-weight:600;
+  color:#315e82;
+}
+
+.stats {
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#55738b;
+  padding:10px 2px;
+}
+
+.bottom {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:11px;
+  color:#6b8499;
+  margin-top:18px;
+}
+
+.small-btn {
+  border:1px solid #9dbbd2;
+  border-radius:3px;
+  background:linear-gradient(white,#d5e9f7);
+  padding:5px 12px;
+  color:#345a78;
+  cursor:pointer;
+}
+
+.small-btn:hover { background:#fff; }
+
+</style>
+</head>
+<body>
+
+<div class="window">
+
+  <div class="titlebar">
+    <span class="app-icon">🎯</span>
+    <span>Guess The Number</span>
+    <div class="window-buttons">
+      <button class="win-btn" title="Minimize">_</button>
+      <button class="win-btn" title="Maximize">□</button>
+      <button class="win-btn close" title="Close"
+        onclick="restart()">×</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <h1 id="title">Guess The Number</h1>
+    <div class="subtitle" id="subtitle">
+      A number between 1 and 100 has been selected.
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="number-box">
+      <input id="guess" type="number" min="1" max="100"
+        placeholder="Enter a number">
+
+      <button class="main-btn" id="guessBtn"
+        onclick="check()">Guess!</button>
+
+      <div id="message">Good luck!</div>
+    </div>
+
+    <div class="stats">
+      <span id="attempts">Attempts: 0</span>
+      <span id="range">Range: 1–100</span>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="bottom">
+      <span>Edimod Games © 2026</span>
+      <button class="small-btn" onclick="toggleLanguage()" id="lang">
+        🇵🇱 Polski
+      </button>
+      <button class="small-btn" onclick="restart()" id="newGame">
+        New Game
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let secret;
+let tries = 0;
+let finished = false;
+let pl = false;
+
+const words = {
+ en: {
+  title:"Guess The Number",
+  subtitle:"A number between 1 and 100 has been selected.",
+  placeholder:"Enter a number",
+  guess:"Guess!",
+  high:"Too high!",
+  low:"Too low!",
+  win:"Correct! Congratulations!",
+  start:"Good luck!",
+  attempts:"Attempts: ",
+  range:"Range: 1–100",
+  invalid:"Enter a number from 1 to 100!",
+  newGame:"New Game",
+  lang:"🇵🇱 Polski"
+ },
+ pl: {
+  title:"Zgadnij liczbę",
+  subtitle:"Wybrano liczbę od 1 do 100.",
+  placeholder:"Wpisz liczbę",
+  guess:"Zgadnij!",
+  high:"Za dużo!",
+  low:"Za mało!",
+  win:"Brawo! Zgadłeś!",
+  start:"Powodzenia!",
+  attempts:"Liczba prób: ",
+  range:"Zakres: 1–100",
+  invalid:"Wpisz liczbę od 1 do 100!",
+  newGame:"Nowa gra",
+  lang:"🇬🇧 English"
+ }
+};
+
+function t() {
+ return pl ? words.pl : words.en;
+}
+
+function restart() {
+ secret = Math.floor(Math.random()*100)+1;
+ tries = 0;
+ finished = false;
+ document.getElementById("guess").value="";
+ document.getElementById("message").style.color="#315e82";
+ render();
+}
+
+function render() {
+ const w=t();
+ document.documentElement.lang=pl?"pl":"en";
+ document.getElementById("title").textContent=w.title;
+ document.getElementById("subtitle").textContent=w.subtitle;
+ document.getElementById("guess").placeholder=w.placeholder;
+ document.getElementById("guessBtn").textContent=w.guess;
+ document.getElementById("attempts").textContent=w.attempts+tries;
+ document.getElementById("range").textContent=w.range;
+ document.getElementById("newGame").textContent=w.newGame;
+ document.getElementById("lang").textContent=w.lang;
+
+ if(!finished) {
+  document.getElementById("message").textContent=w.start;
+ }
+}
+
+function toggleLanguage() {
+ pl=!pl;
+ render();
+}
+
+function check() {
+ if(finished) return;
+
+ const input=document.getElementById("guess");
+ const n=Number(input.value);
+ const msg=document.getElementById("message");
+ const w=t();
+
+ if(!Number.isInteger(n)||n<1||n>100) {
+  msg.textContent=w.invalid;
+  msg.style.color="#ad6500";
+  return;
+ }
+
+ tries++;
+
+ if(n>secret) {
+  msg.textContent="↑ "+w.high;
+  msg.style.color="#b34d40";
+ } else if(n<secret) {
+  msg.textContent="↓ "+w.low;
+  msg.style.color="#ad7900";
+ } else {
+  msg.textContent="★ "+w.win;
+  msg.style.color="#25834c";
+  finished=true;
+ }
+
+ document.getElementById("attempts").textContent=w.attempts+tries;
+ input.value="";
+ input.focus();
+}
+
+document.getElementById("guess").addEventListener("keydown",e=>{
+ if(e.key==="Enter") check();
+});
+
+restart();
+</script>
+</body>
+</html>

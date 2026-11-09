@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credits - Edimod</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="edimod-logo.png">
+    
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="main.css">
+
+    <style>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            overflow-y: auto !important; /* Wymusza działanie paska przewijania */
+            height: 100vh;
+        }
+        .terms-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: #000000;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #222222;
+        }
+        .terms-logo {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .terms-logo:hover {
+            color: #ff3366;
+        }
+        .terms-content {
+            max-width: 800px;
+            margin: 90px auto 50px auto;
+            padding: 35px;
+            background: #111111;
+            border: 1px solid #222222;
+            border-radius: 12px;
+            color: #dddddd;
+            line-height: 1.6;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        .terms-content h1 {
+            font-size: 32px;
+            color: #ffffff;
+            margin-top: 0;
+            border-bottom: 2px solid #222222;
+            padding-bottom: 15px;
+        }
+        .terms-content h2 {
+            font-size: 18px;
+            color: #ffffff;
+            margin-top: 25px;
+            margin-bottom: 8px;
+        }
+        .terms-content p {
+            font-size: 15px;
+            color: #cccccc;
+            margin-bottom: 15px;
+        }
+        
+        /* Styl boksu IP i przycisku kopiowania */
+        .ip-copy-box {
+            display: inline-flex;
+            align-items: center;
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 8px 12px;
+            gap: 15px;
+            margin-top: 5px;
+        }
+        .ip-copy-box code {
+            color: #ff3366;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .ip-copy-box button {
+            background: #ff3366;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s ease;
+        }
+        .ip-copy-box button:hover {
+            background: #e02e5b;
+        }
+
+        /* Styl powiadomienia (Toast) */
+        #copyToast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #ff3366;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        #copyToast.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 20px;
+            background: #1a1a1a;
+            color: #ffffff;
+            text-decoration: none;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .back-link:hover {
+            background: #252525;
+            border-color: #ff3366;
+            color: #ff3366;
+            transform: translateX(-3px);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Górny pasek bez przycisku języka -->
+<header class="terms-header">
+    <a href="index.html" class="terms-logo">Edimod</a>
+</header>
+
+<main class="terms-content">
+    <h1>Aetheris SMP</h1>
+
+    <h2>Konfiguracja NPC i nie któruch skryptów</h2>
+    <p>skile109.</p>
+
+    <h2>Dalsze skrypty i host servera</h2>
+    <p>Olek230816.</p>
+
+    <h2>IP Servera</h2>
+    <p>Kliknij przycisk, aby skopiować adres IP:</p>
+    
+    <!-- Sekcja IP z działającym kopiowaniem -->
+    <div class="ip-copy-box">
+        <code id="serverIp">yyy narazie nie ma :c</code> <!-- Zmień na swoje IP jeśli jest inne -->
+        <button onclick="copyServerIP()">Skopiuj IP</button>
+    </div>
+
+    <div>
+        <a href="index.html" class="back-link">← Powrót do strony głównej</a>
+    </div>
+</main>
+
+<!-- Powiadomienie o skopiowaniu (Toast) -->
+<div id="copyToast">Skopiowano IP do schowka!</div>
+
+<!-- Customowy kursor -->
+<div class="custom-cursor site-wide"></div>
+
+<!-- Główny skrypt -->
+<script src="main.js"></script>
+
+<!-- Skrypt obsługujący kopiowanie i komunikat -->
+<script>
+function copyServerIP() {
+    const ipText = document.getElementById("serverIp").innerText;
+    const toast = document.getElementById("copyToast");
+
+    navigator.clipboard.writeText(ipText).then(() => {
+        // Pokaż komunikat
+        toast.classList.add("show");
+
+        // Ukryj komunikat po 2 sekundach
+        setTimeout(() => {
+            toast.classList.remove("show");
+        }, 2000);
+    }).catch(err => {
+        console.error('Błąd podczas kopiowania: ', err);
+    });
+}
+</script>
+
+</body>
+</html>

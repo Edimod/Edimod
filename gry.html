@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gry</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            padding: 20px;
+        }
+
+        /* Górny pasek nawigacji */
+        header {
+            margin-bottom: 30px;
+        }
+
+        .btn-home {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2c3e50;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-home:hover {
+            background-color: #1a252f;
+        }
+
+        /* Nagłówek sekcji */
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        /* Siatka gier (4 kwadraty) */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 900px;
+        }
+
+        /* Styl poszczególnego kwadratu z grą */
+        .game-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            aspect-ratio: 1 / 1; /* Wymusza kształt idealnego kwadratu */
+            background-color: #ffffff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .game-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Górny przycisk Home -->
+    <header>
+        <a href="index.html" class="btn-home">← Home</a>
+    </header>
+
+    <main>
+        <!-- Tytuł sekcji -->
+        <h1 class="section-title">Gry &gt;</h1>
+
+        <!-- 4 Kwadraty z odnośnikami do gier -->
+        <div class="games-grid">
+            <a href="zgadywanki.html" class="game-card">
+                <span class="game-icon">❓</span>
+                <span>Zgadywanki</span>
+            </a>
+
+            <a href="snake.html" class="game-card">
+                <span class="game-icon">🐍</span>
+                <span>Snake</span>
+            </a>
+
+            <a href="clicker.html" class="game-card">
+                <span class="game-icon">🖱️</span>
+                <span>Clicker</span>
+            </a>
+
+            <a href="2048.html" class="game-card">
+                <span class="game-icon">🧩</span>
+                <span>2048</span>
+            </a>
+        </div>
+    </main>
+
+</body>
+</html>
