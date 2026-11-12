@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edimod - Rejestracja</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: #ffffff;
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            color: #34495e;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        input[type="text"],
+        input[type="tel"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #dcdde1;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus,
+        input[type="tel"]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .gender-section {
+            margin-top: 20px;
+            margin-bottom: 25px;
+        }
+        .gender-section p {
+            font-weight: 500;
+            color: #34495e;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .radio-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+            padding: 5px;
+            border: 1px solid #edf2f7;
+            border-radius: 6px;
+            background: #fafbfc;
+        }
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #2d3748;
+            cursor: pointer;
+        }
+        button[type="submit"] {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button[type="submit"]:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Rejestrowanie do konta Edimod</h1>
+
+    <form>
+        <div class="form-group">
+            <label for="imie">Imię:</label>
+            <input type="text" id="imie" name="imie" required placeholder="Wpisz imię">
+        </div>
+
+        <div class="form-group">
+            <label for="nazwisko">Nazwisko (niewymagane):</label>
+            <input type="text" id="nazwisko" name="nazwisko" placeholder="Wpisz nazwisko">
+        </div>
+
+        <div class="form-group">
+            <label for="telefon">Telefon (niewymagane):</label>
+            <input type="tel" id="telefon" name="telefon" placeholder="np. 48 +600 100 100">
+        </div>
+
+        <div class="gender-section">
+            <p>Płeć:</p>
+            <div class="radio-grid">
+                <label class="radio-item"><input type="radio" name="plec" value="Chłopak"> Chłopak</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Dziewczyna"> Dziewczyna</label>
+                <label class="radio-item"><input type="radio" name="plec" value="nie urodzony"> Nie-urodzony</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Nie podaję"> Nie chcę podawać</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Crosait"> Crosait🥐</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Samolot"> Samolot Turbinowy Boeing X-32✈️</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Czołg"> Czołg samsung K9</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Bomba Atomowa"> Bomba Atomowa💣</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Mail"> Mail💌</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Fmail"> Fmail💌</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Gmail"> Gmail💌</label>
+                <label class="radio-item"><input type="radio" name="plec" value="torebka"> Torebka Bedronki👜</label>
+                <label class="radio-item"><input type="radio" name="plec" value="Ford"> Ford🚗</label>
+                <label class="radio-item"><input type="radio" name="plec" value="sus"> SUS🔪</label>
+            </div>
+        </div>
+
+        <button type="submit">Zapisz</button>
+        <div id="video-container" style="display: none; margin-top: 20px;">
+    <video width="100%" controls autoplay>
+        <source src="wizox.mp4" type="video/mp4">
+        Twoja przeglądarka nie obsługuje wideo.
+    </video>
+</div>
+    </form>
+</div>
+<script>
+document.querySelector("form").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    document.getElementById("video-container").style.display = "block";
+});
+</script>
+</body>
+</html>
