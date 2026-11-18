@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saper / Minesweeper</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for grid cells */
+        .cell {
+            user-select: none;
+            transition: background-color 0.1s ease, transform 0.1s ease;
+        }
+        .cell:active {
+            transform: scale(0.95);
+        }
+        /* Number colors */
+        .num-1 { color: #2563eb; }
+        .num-2 { color: #16a34a; }
+        .num-3 { color: #dc2626; }
+        .num-4 { color: #7c3aed; }
+        .num-5 { color: #9a3412; }
+        .num-6 { color: #0891b2; }
+        .num-7 { color: #111827; }
+        .num-8 { color: #4b5563; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="max-w-4xl w-full flex flex-col items-center">
+        
+        <!-- Header -->
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent mb-1">
+                Saper (Minesweeper)
+            </h1>
+            <p class="text-slate-400 text-sm">Odkryj wszystkie pola, unikając min!</p>
+        </header>
+
+        <!-- MENU SCREEN -->
+        <div id="menu-screen" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 md:p-8 shadow-2xl w-full max-w-md transition-all">
+            <h2 class="text-xl font-semibold mb-6 text-center text-slate-200">Wybierz poziom trudności</h2>
+            
+            <div class="space-y-3 mb-6">
+                <button onclick="startGame('easy')" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl transition shadow-lg shadow-emerald-900/30 flex justify-between items-center">
+                    <span><i class="fa-solid fa-face-smile mr-2"></i> Łatwy (Początkujący)</span>
+                    <span class="text-xs bg-emerald-700/60 px-2.5 py-1 rounded-lg">9x9 • 10 min</span>
+                </button>
+                <button onclick="startGame('medium')" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition shadow-lg shadow-blue-900/30 flex justify-between items-center">
+                    <span><i class="fa-solid fa-face-meh mr-2"></i> Średni (Zaawansowany)</span>
+                    <span class="text-xs bg-blue-700/60 px-2.5 py-1 rounded-lg">16x16 • 40 min</span>
+                </button>
+                <button onclick="startGame('hard')" class="w-full py-3 px-4 bg-purple-600 hover:bg-purple-500 text-white font-medium rounded-xl transition shadow-lg shadow-purple-900/30 flex justify-between items-center">
+                    <span><i class="fa-solid fa-face-dizzy mr-2"></i> Trudny (Ekspert)</span>
+                    <span class="text-xs bg-purple-700/60 px-2.5 py-1 rounded-lg">30x16 • 99 min</span>
+                </button>
+                <button onclick="toggleCustomSettings()" class="w-full py-3 px-4 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition flex justify-between items-center">
+                    <span><i class="fa-solid fa-sliders mr-2"></i> Własny rozmiar</span>
+                    <i class="fa-solid fa-chevron-down text-xs" id="custom-chevron"></i>
+                </button>
+            </div>
+
+            <!-- Custom Settings Panel -->
+            <div id="custom-panel" class="hidden bg-slate-900/60 border border-slate-700/60 rounded-xl p-4 mb-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Wiersze (9 - 30): <span id="val-rows" class="text-white font-bold">12</span></label>
+                    <input type="range" id="custom-rows" min="9" max="30" value="12" oninput="updateCustomLabels()" class="w-full accent-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Kolumny (9 - 30): <span id="val-cols" class="text-white font-bold">12</span></label>
+                    <input type="range" id="custom-cols" min="9" max="30" value="12" oninput="updateCustomLabels()" class="w-full accent-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Liczba min: <span id="val-mines" class="text-white font-bold">20</span></label>
+                    <input type="range" id="custom-mines" min="5" max="100" value="20" oninput="updateCustomLabels()" class="w-full accent-blue-500">
+                </div>
+                <button onclick="startGame('custom')" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition text-sm shadow-md">
+                    Graj w niestandardowej planszy
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="game-screen" class="hidden flex flex-col items-center w-full">
+            
+            <!-- Dashboard Controls Bar -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 mb-4 shadow-xl flex items-center justify-between w-full max-w-xl">
+                <!-- Mine Counter -->
+                <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-rose-400 font-mono font-bold text-lg">
+                    <i class="fa-solid fa-bomb text-sm"></i>
+                    <span id="mine-count">000</span>
+                </div>
+
+                <!-- Reset / Status Face Button -->
+                <button onclick="resetCurrentGame()" id="status-btn" class="w-11 h-11 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-xl flex items-center justify-center text-xl shadow-md transition active:scale-95">
+                    <i class="fa-solid fa-face-smile text-amber-400"></i>
+                </button>
+
+                <!-- Timer -->
+                <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center space-x-2 text-blue-400 font-mono font-bold text-lg">
+                    <i class="fa-solid fa-clock text-sm"></i>
+                    <span id="timer">000</span>
+                </div>
+            </div>
+
+            <!-- Mobile Helper Bar (Flag mode toggle) -->
+            <div class="flex md:hidden items-center justify-between w-full max-w-xl mb-3 px-1">
+                <button onclick="returnToMenu()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-lg text-slate-300 transition">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Menu
+                </button>
+                <button id="mobile-mode-btn" onclick="toggleMobileMode()" class="text-xs font-medium px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 transition flex items-center space-x-2">
+                    <i id="mode-icon" class="fa-solid fa-magnifying-glass text-blue-400"></i>
+                    <span id="mode-text">Tryb: Odkrywanie</span>
+                </button>
+            </div>
+
+            <!-- Desktop Menu Button -->
+            <div class="hidden md:flex justify-between w-full max-w-xl mb-3">
+                <button onclick="returnToMenu()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3.5 py-2 rounded-xl text-slate-300 transition flex items-center space-x-2">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Wróć do menu głównego</span>
+                </button>
+                <div class="text-xs text-slate-400 flex items-center space-x-3">
+                    <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">Lewy klik</kbd> Odkryj</span>
+                    <span><kbd class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">Prawy klik</kbd> Flaga</span>
+                </div>
+            </div>
+
+            <!-- Board View Container (Scrollable if too wide) -->
+            <div class="bg-slate-800/80 backdrop-blur border border-slate-700 p-3 md:p-4 rounded-2xl shadow-2xl overflow-auto max-w-full max-h-[70vh]">
+                <div id="board-grid" class="grid gap-1"></div>
+            </div>
+        </div>
+
+        <!-- Notification Modal / Banner -->
+        <div id="game-message" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl animate-in fade-in zoom-in duration-200">
+                <div id="msg-icon" class="text-5xl mb-3">🎉</div>
+                <h3 id="msg-title" class="text-2xl font-bold text-white mb-2">Wygrana!</h3>
+                <p id="msg-desc" class="text-slate-400 text-sm mb-6">Ukończyłeś planszę w czasie 45 sekund.</p>
+                <div class="flex space-x-3">
+                    <button onclick="resetCurrentGame(); closeModal();" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-xl transition shadow-lg shadow-blue-900/30">
+                        Zagraj ponownie
+                    </button>
+                    <button onclick="returnToMenu(); closeModal();" class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition">
+                        Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Game Engine -->
+    <script>
+        // Game configuration & state variables
+        let rows = 9;
+        let cols = 9;
+        let totalMines = 10;
+        let board = [];
+        let revealedCount = 0;
+        let flaggedCount = 0;
+        let gameOver = false;
+        let gameWon = false;
+        let firstClick = true;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        let mobileFlagMode = false; // false = reveal mode, true = flag mode for touch devices
+
+        // Initialize custom max constraints based on range inputs
+        function updateCustomLabels() {
+            const r = parseInt(document.getElementById('custom-rows').value);
+            const c = parseInt(document.getElementById('custom-cols').value);
+            const maxM = Math.floor((r * c) * 0.85); // max 85% of tiles can be mines
+            
+            const minesInput = document.getElementById('custom-mines');
+            minesInput.max = maxM;
+            if (parseInt(minesInput.value) > maxM) {
+                minesInput.value = maxM;
+            }
+
+            document.getElementById('val-rows').innerText = r;
+            document.getElementById('val-cols').innerText = c;
+            document.getElementById('val-mines').innerText = minesInput.value;
+        }
+
+        // Toggle custom settings visibility
+        function toggleCustomSettings() {
+            const panel = document.getElementById('custom-panel');
+            const chevron = document.getElementById('custom-chevron');
+            panel.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+            updateCustomLabels();
+        }
+
+        // Switch back to menu
+        function returnToMenu() {
+            stopTimer();
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+            closeModal();
+        }
+
+        // Start game from menu selection
+        function startGame(difficulty) {
+            if (difficulty === 'easy') {
+                rows = 9; cols = 9; totalMines = 10;
+            } else if (difficulty === 'medium') {
+                rows = 16; cols = 16; totalMines = 40;
+            } else if (difficulty === 'hard') {
+                rows = 16; cols = 30; totalMines = 99;
+            } else if (difficulty === 'custom') {
+                rows = parseInt(document.getElementById('custom-rows').value);
+                cols = parseInt(document.getElementById('custom-cols').value);
+                totalMines = parseInt(document.getElementById('custom-mines').value);
+            }
+
+            document.getElementById('menu-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+
+            initGame();
+        }
+
+        // Reset current active game configuration
+        function resetCurrentGame() {
+            initGame();
+        }
+
+        // Initialize state & build grid
+        function initGame() {
+            stopTimer();
+            secondsElapsed = 0;
+            document.getElementById('timer').innerText = '000';
+            gameOver = false;
+            gameWon = false;
+            firstClick = true;
+            revealedCount = 0;
+            flaggedCount = 0;
+            updateMineCounter();
+            setFaceIcon('smile');
+
+            // Generate empty board model
+            board = [];
+            for (let r = 0; r < rows; r++) {
+                let rowArr = [];
+                for (let c = 0; c < cols; c++) {
+                    rowArr.push({
+                        row: r,
+                        col: c,
+                        mine: false,
+                        revealed: false,
+                        flagged: false,
+                        neighborMines: 0
+                    });
+                }
+                board.push(rowArr);
+            }
+
+            renderBoardDOM();
+        }
+
+        // Render DOM Grid elements based on board size
+        function renderBoardDOM() {
+            const gridEl = document.getElementById('board-grid');
+            gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+            gridEl.innerHTML = '';
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cellEl = document.createElement('div');
+                    cellEl.id = `cell-${r}-${c}`;
+                    cellEl.className = 'cell w-8 h-8 md:w-9 md:h-9 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center font-bold text-sm md:text-base cursor-pointer shadow-inner border border-slate-600/50';
+                    
+                    // Event Listeners
+                    cellEl.addEventListener('click', (e) => handleCellClick(r, c));
+                    cellEl.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        handleCellRightClick(r, c);
+                    });
+
+                    // Long press support for mobile touch users
+                    let pressTimer = null;
+                    cellEl.addEventListener('touchstart', (e) => {
+                        pressTimer = setTimeout(() => {
+                            handleCellRightClick(r, c);
+                            pressTimer = null;
+                        }, 400); // 400ms long press for flag
+                    });
+                    cellEl.addEventListener('touchend', (e) => {
+                        if (pressTimer) {
+                            clearTimeout(pressTimer);
+                            pressTimer = null;
+                        }
+                    });
+
+                    gridEl.appendChild(cellEl);
+                }
+            }
+        }
+
+        // Place mines randomly ensuring safety around the initial clicked cell
+        function placeMines(safeRow, safeCol) {
+            let minesPlaced = 0;
+            while (minesPlaced < totalMines) {
+                let r = Math.floor(Math.random() * rows);
+                let c = Math.floor(Math.random() * cols);
+
+                // Avoid placing mine on safe cell or adjacent neighbors of safe cell for guaranteed nice opening
+                let isNearSafe = Math.abs(r - safeRow) <= 1 && Math.abs(c - safeCol) <= 1;
+
+                if (!board[r][c].mine && !isNearSafe) {
+                    board[r][c].mine = true;
+                    minesPlaced++;
+                }
+            }
+
+            // Fallback if grid is too tiny and restriction blocked placement
+            if (minesPlaced < totalMines) {
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (minesPlaced < totalMines && !board[r][c].mine && (r !== safeRow || c !== safeCol)) {
+                            board[r][c].mine = true;
+                            minesPlaced++;
+                        }
+                    }
+                }
+            }
+
+            // Calculate numbers
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!board[r][c].mine) {
+                        let count = 0;
+                        for (let dr = -1; dr <= 1; dr++) {
+                            for (let dc = -1; dc <= 1; dc++) {
+                                let nr = r + dr;
+                                let nc = c + dc;
+                                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc].mine) {
+                                    count++;
+                                }
+                            }
+                        }
+                        board[r][c].neighborMines = count;
+                    }
+                }
+            }
+        }
+
+        // Left Click Handler
+        function handleCellClick(r, c) {
+            if (gameOver || gameWon) return;
+            let cell = board[r][c];
+
+            // If mobile flag mode is active, treat click as flag placement
+            if (mobileFlagMode) {
+                handleCellRightClick(r, c);
+                return;
+            }
+
+            if (cell.flagged || cell.revealed) return;
+
+            // First click trigger
+            if (firstClick) {
+                firstClick = false;
+                placeMines(r, c);
+                startTimer();
+            }
+
+            // Hit a mine!
+            if (cell.mine) {
+                revealAllMines(r, c);
+                gameOver = true;
+                stopTimer();
+                setFaceIcon('dead');
+                showGameMessage(false);
+                return;
+            }
+
+            revealCell(r, c);
+            checkWinCondition();
+        }
+
+        // Right Click Handler (Flagging)
+        function handleCellRightClick(r, c) {
+            if (gameOver || gameWon) return;
+            let cell = board[r][c];
+            if (cell.revealed) return;
+
+            cell.flagged = !cell.flagged;
+            if (cell.flagged) {
+                flaggedCount++;
+            } else {
+                flaggedCount--;
+            }
+
+            updateMineCounter();
+            updateCellDOM(r, c);
+        }
+
+        // Recursive flood fill reveal for blank tiles
+        function revealCell(r, c) {
+            let cell = board[r][c];
+            if (cell.revealed || cell.flagged) return;
+
+            cell.revealed = true;
+            revealedCount++;
+            updateCellDOM(r, c);
+
+            if (cell.neighborMines === 0) {
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        let nr = r + dr;
+                        let nc = c + dc;
+                        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                            if (!board[nr][nc].revealed) {
+                                revealCell(nr, nc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update single cell DOM presentation
+        function updateCellDOM(r, c) {
+            let cell = board[r][c];
+            let el = document.getElementById(`cell-${r}-${c}`);
+            if (!el) return;
+
+            if (cell.revealed) {
+                el.className = 'cell w-8 h-8 md:w-9 md:h-9 bg-slate-900/60 rounded-lg flex items-center justify-center font-bold text-sm md:text-base border border-slate-800 shadow-none';
+                if (cell.mine) {
+                    el.innerHTML = '<i class="fa-solid fa-bomb text-rose-500"></i>';
+                } else if (cell.neighborMines > 0) {
+                    el.innerText = cell.neighborMines;
+                    el.classList.add(`num-${cell.neighborMines}`);
+                } else {
+                    el.innerText = '';
+                }
+            } else {
+                if (cell.flagged) {
+                    el.innerHTML = '<i class="fa-solid fa-flag text-rose-500"></i>';
+                    el.className = 'cell w-8 h-8 md:w-9 md:h-9 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center font-bold text-sm md:text-base cursor-pointer shadow-inner border border-slate-600/50';
+                } else {
+                    el.innerHTML = '';
+                    el.className = 'cell w-8 h-8 md:w-9 md:h-9 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center font-bold text-sm md:text-base cursor-pointer shadow-inner border border-slate-600/50';
+                }
+            }
+        }
+
+        // Reveal all mines on game over
+        function revealAllMines(explodedR, explodedC) {
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    let cell = board[r][c];
+                    if (cell.mine) {
+                        cell.revealed = true;
+                        let el = document.getElementById(`cell-${r}-${c}`);
+                        if (el) {
+                            el.className = 'cell w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center font-bold text-sm md:text-base border border-slate-800 shadow-none ' + (r === explodedR && c === explodedC ? 'bg-rose-900/80' : 'bg-slate-900/60');
+                            el.innerHTML = '<i class="fa-solid fa-bomb text-rose-500"></i>';
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check if player has uncovered all safe tiles
+        function checkWinCondition() {
+            let totalCells = rows * cols;
+            if (revealedCount === totalCells - totalMines) {
+                gameWon = true;
+                stopTimer();
+                setFaceIcon('win');
+                
+                // Auto flag remaining unflagged mines
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (board[r][c].mine && !board[r][c].flagged) {
+                            board[r][c].flagged = true;
+                            updateCellDOM(r, c);
+                        }
+                    }
+                }
+                flaggedCount = totalMines;
+                updateMineCounter();
+                showGameMessage(true);
+            }
+        }
+
+        // Timer control
+        function startTimer() {
+            stopTimer();
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                if (secondsElapsed > 999) secondsElapsed = 999;
+                document.getElementById('timer').innerText = String(secondsElapsed).padStart(3, '0');
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        // Update Remaining Mine Counter display
+        function updateMineCounter() {
+            let remaining = totalMines - flaggedCount;
+            let displayVal = String(remaining).padStart(3, '0');
+            if (remaining < 0) {
+                displayVal = '-' + String(Math.abs(remaining)).padStart(2, '0');
+            }
+            document.getElementById('mine-count').innerText = displayVal;
+        }
+
+        // Change status face icon button
+        function setFaceIcon(status) {
+            let btn = document.getElementById('status-btn');
+            if (status === 'smile') {
+                btn.innerHTML = '<i class="fa-solid fa-face-smile text-amber-400"></i>';
+            } else if (status === 'dead') {
+                btn.innerHTML = '<i class="fa-solid fa-face-dizzy text-rose-500"></i>';
+            } else if (status === 'win') {
+                btn.innerHTML = '<i class="fa-solid fa-face-grin-stars text-emerald-400"></i>';
+            }
+        }
+
+        // Mobile touch mode switcher
+        function toggleMobileMode() {
+            mobileFlagMode = !mobileFlagMode;
+            let btn = document.getElementById('mobile-mode-btn');
+            let icon = document.getElementById('mode-icon');
+            let text = document.getElementById('mode-text');
+
+            if (mobileFlagMode) {
+                btn.className = 'text-xs font-medium px-4 py-2 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-200 transition flex items-center space-x-2 shadow-lg shadow-rose-950/40';
+                icon.className = 'fa-solid fa-flag text-rose-400';
+                text.innerText = 'Tryb: Stawianie flag';
+            } else {
+                btn.className = 'text-xs font-medium px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 transition flex items-center space-x-2';
+                icon.className = 'fa-solid fa-magnifying-glass text-blue-400';
+                text.innerText = 'Tryb: Odkrywanie';
+            }
+        }
+
+        // Show Game Win/Loss Modal
+        function showGameMessage(isWin) {
+            const modal = document.getElementById('game-message');
+            const icon = document.getElementById('msg-icon');
+            const title = document.getElementById('msg-title');
+            const desc = document.getElementById('msg-desc');
+
+            if (isWin) {
+                icon.innerText = '🏆';
+                title.innerText = 'Gratulacje! Wygrana!';
+                title.className = 'text-2xl font-bold text-emerald-400 mb-2';
+                desc.innerText = `Udało Ci się oczyścić planszę w czasie ${secondsElapsed} sekund.`;
+            } else {
+                icon.innerText = '💥';
+                title.innerText = 'Koniec gry!';
+                title.className = 'text-2xl font-bold text-rose-500 mb-2';
+                desc.innerText = 'Niestety, trafiłeś na minę. Spróbuj ponownie!';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('game-message').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
