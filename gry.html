@@ -1,9 +1,11 @@
+```html
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gry</title>
+
     <style>
         * {
             box-sizing: border-box;
@@ -18,7 +20,6 @@
             padding: 20px;
         }
 
-        /* Górny pasek nawigacji */
         header {
             margin-bottom: 30px;
         }
@@ -38,14 +39,12 @@
             background-color: #1a252f;
         }
 
-        /* Nagłówek sekcji */
         .section-title {
             font-size: 1.8rem;
             margin-bottom: 20px;
             color: #2c3e50;
         }
 
-        /* Siatka gier (4 kwadraty) */
         .games-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -53,13 +52,12 @@
             max-width: 900px;
         }
 
-        /* Styl poszczególnego kwadratu z grą */
         .game-card {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            aspect-ratio: 1 / 1; /* Wymusza kształt idealnego kwadratu */
+            aspect-ratio: 1 / 1;
             background-color: #ffffff;
             border: 2px solid #e0e0e0;
             border-radius: 12px;
@@ -84,19 +82,18 @@
         }
     </style>
 </head>
+
 <body>
 
-    <!-- Górny przycisk Home -->
     <header>
         <a href="index.html" class="btn-home">← Home</a>
     </header>
 
     <main>
-        <!-- Tytuł sekcji -->
         <h1 class="section-title">Gry &gt;</h1>
 
-        <!-- 4 Kwadraty z odnośnikami do gier -->
         <div class="games-grid">
+
             <a href="zgadywanki.html" class="game-card">
                 <span class="game-icon">❓</span>
                 <span>Zgadywanki</span>
@@ -107,7 +104,6 @@
                 <span>Snake</span>
             </a>
 
-            <div class="games-grid">
             <a href="warcaby.html" class="game-card">
                 <span class="game-icon">♟️</span>
                 <span>Warcaby</span>
@@ -116,6 +112,7 @@
             <a href="2048.html" class="game-card">
                 <span class="game-icon">🧩</span>
                 <span>2048</span>
+            </a>
 
             <a href="mineswweper.html" class="game-card">
                 <span class="game-icon">⛳</span>
@@ -124,10 +121,12 @@
 
             <a href="tictactoe.html" class="game-card">
                 <span class="game-icon">✖️</span>
-                <span>Kółko i krzyżyk</span>                
-            </a>                
+                <span>Kółko i krzyżyk</span>
+            </a>
+
         </div>
     </main>
 
 </body>
 </html>
+```
