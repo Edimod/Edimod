@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warcaby Multiplayer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PeerJS dla połączeń P2P WebRTC bez własnego serwera -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <!-- Czcionka Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Stylizacja planszy 8x8 */
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            max-width: min(88vw, 72vh, 540px);
+            border: 10px solid #4a2e1b;
+            border-radius: 12px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.35), inset 0 0 0 2px #2c1a0e;
+            overflow: hidden;
+            background-color: #4a2e1b;
+        }
+
+        .square {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .square-light {
+            background-color: #ebd5b3;
+        }
+
+        .square-dark {
+            background-color: #8b5a2b;
+        }
+
+        /* Podświetlenia pól */
+        .square-selected {
+            background-color: #d97706 !important;
+            box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.5);
+        }
+
+        .square-last-move {
+            box-shadow: inset 0 0 0 3px rgba(250, 204, 21, 0.65);
+        }
+
+        .valid-move-dot {
+            width: 32%;
+            height: 32%;
+            border-radius: 9999px;
+            background-color: rgba(34, 197, 94, 0.85);
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+            pointer-events: none;
+            animation: pulseDot 1.4s infinite ease-in-out;
+        }
+
+        .valid-capture-ring {
+            width: 78%;
+            height: 78%;
+            border-radius: 9999px;
+            border: 4px solid rgba(239, 68, 68, 0.9);
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+            pointer-events: none;
+            animation: pulseDot 1.2s infinite ease-in-out;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(0.95); opacity: 0.85; }
+            50% { transform: scale(1.08); opacity: 1; }
+        }
+
+        /* Pionki */
+        .piece {
+            width: 78%;
+            height: 78%;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+            position: relative;
+            z-index: 10;
+        }
+
+        .piece-white {
+            background: radial-gradient(circle at 32% 30%, #ffffff 0%, #f3f4f6 55%, #d1d5db 100%);
+            border: 2px solid #9ca3af;
+            box-shadow: 0 5px 0 #9ca3af, 0 8px 12px rgba(0, 0, 0, 0.35);
+            color: #374151;
+        }
+
+        .piece-black {
+            background: radial-gradient(circle at 32% 30%, #4b5563 0%, #1f2937 55%, #111827 100%);
+            border: 2px solid #030712;
+            box-shadow: 0 5px 0 #030712, 0 8px 12px rgba(0, 0, 0, 0.45);
+            color: #fbbf24;
+        }
+
+        .piece-clickable {
+            cursor: pointer;
+        }
+
+        .piece-clickable:hover {
+            transform: translateY(-3px) scale(1.04);
+        }
+
+        .piece-must-capture {
+            ring: 3px solid #ef4444;
+            box-shadow: 0 0 0 3px #ef4444, 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Wewnętrzny pierścień pionka */
+        .piece::after {
+            content: '';
+            position: absolute;
+            width: 74%;
+            height: 74%;
+            border-radius: 9999px;
+            border: 1.5px solid rgba(156, 163, 175, 0.45);
+            pointer-events: none;
+        }
+
+        .piece-black::after {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Korona damki */
+        .king-crown {
+            width: 56%;
+            height: 56%;
+            z-index: 12;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.35));
+        }
+
+        /* Animacja pojawiania się */
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- LEWY GÓRNY RÓG: Nazwa konta oraz status "Grasz z [NAZWA]" -->
+    <header class="fixed top-0 left-0 z-40 p-3 sm:p-4 flex flex-wrap items-center gap-3 max-w-full">
+        <input
+            type="text"
+            id="my-name-input"
+            maxlength="24"
+            placeholder="Twoja nazwa konta"
+            autocomplete="off"
+            class="bg-white/95 backdrop-blur border border-gray-300 text-gray-800 text-sm sm:text-base font-medium rounded-xl px-3.5 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-amber-600 w-44 sm:w-56 transition"
+        />
+        <!-- Wyświetlane TYLKO gdy przeciwnik jest połączony i wpisał niepustą nazwę -->
+        <div id="opponent-name-badge" class="hidden bg-amber-900 text-amber-50 text-sm sm:text-base font-semibold px-3.5 py-2 rounded-xl shadow-sm fade-in">
+            Grasz z <span id="opponent-name-text" class="font-bold underline decoration-amber-400"></span>
+        </div>
+    </header>
+
+    <!-- Komunikat błędu / powiadomienie (zamiast alert()) -->
+    <div id="toast-banner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- GŁÓWNA PRZESTRZEŃ ROBOCZA -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 pt-20 pb-8 w-full">
+
+        <!-- EKRAN 1: EKRAN STARTOWY (Wpisz kod | Albo | Stwórz Kod) -->
+        <section id="screen-start" class="w-full max-w-xl flex flex-col items-center justify-center fade-in">
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full">
+                <!-- Pole: Wpisz kod -->
+                <input
+                    type="text"
+                    id="join-code-input"
+                    maxlength="10"
+                    placeholder="Wpisz kod"
+                    autocomplete="off"
+                    class="w-full sm:w-48 text-center uppercase tracking-widest font-bold text-lg bg-white border-2 border-gray-300 text-gray-800 rounded-xl px-4 py-3 shadow-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 transition"
+                />
+
+                <!-- Separator: Albo -->
+                <span class="text-gray-500 font-semibold text-base sm:text-lg px-1 select-none">
+                    Albo
+                </span>
+
+                <!-- Guzik: Stwórz Kod -->
+                <button
+                    id="btn-create-code"
+                    type="button"
+                    class="w-full sm:w-auto bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold text-lg px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Stwórz Kod
+                </button>
+            </div>
+
+            <!-- Dynamiczny guzik "Dołącz" pojawiający się na dole po wpisaniu czegokolwiek w pole "Wpisz kod" -->
+            <div id="join-button-wrapper" class="hidden mt-5 w-full sm:w-auto flex justify-center fade-in">
+                <button
+                    id="btn-join-game"
+                    type="button"
+                    class="w-full sm:w-56 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-lg px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Dołącz
+                </button>
+            </div>
+        </section>
+
+        <!-- EKRAN 2: TYLKO SAM WYGENEROWANY KOD (gdy kliknięto "Stwórz Kod", czekanie na 2. komputer) -->
+        <section id="screen-code-only" class="hidden flex-col items-center justify-center text-center fade-in">
+            <div
+                id="generated-code-display"
+                title="Kliknij, aby skopiować kod"
+                class="text-6xl sm:text-8xl font-extrabold tracking-[0.18em] text-gray-900 bg-white border-2 border-gray-200 px-8 py-6 rounded-2xl shadow-md cursor-pointer hover:border-amber-500 active:scale-95 transition select-all"
+            >
+                ...
+            </div>
+            <p id="copy-hint" class="mt-3 text-xs text-gray-400 font-medium opacity-0 transition-opacity">
+                Skopiowano kod do schowka
+            </p>
+        </section>
+
+        <!-- EKRAN 3: PLANSZA GRY (po zsynchronizowaniu obu komputerów) -->
+        <section id="screen-game" class="hidden flex-col items-center justify-center w-full max-w-2xl fade-in">
+            <!-- Pasek statusu tury -->
+            <div class="mb-4 flex flex-wrap items-center justify-center gap-3">
+                <div id="turn-indicator" class="px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border transition-colors">
+                    Twój ruch
+                </div>
+                <div id="player-color-badge" class="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white border border-gray-300 text-gray-700 shadow-sm">
+                    Grasz: Białe
+                </div>
+            </div>
+
+            <!-- Szachownica 8x8 -->
+            <div id="board" class="board-grid"></div>
+
+            <!-- Panel końca gry (wygrana/przegrana + Zagraj ponownie) -->
+            <div id="game-over-panel" class="hidden mt-5 bg-white border border-gray-200 rounded-2xl p-5 shadow-lg text-center max-w-sm w-full fade-in">
+                <h2 id="game-over-title" class="text-2xl font-extrabold text-gray-900 mb-1">Koniec gry!</h2>
+                <p id="game-over-subtitle" class="text-sm text-gray-600 mb-4"></p>
+                <button
+                    id="btn-play-again"
+                    type="button"
+                    class="w-full bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl shadow transition cursor-pointer"
+                >
+                    Zagraj ponownie
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        /**
+         * WARCABY MULTIPLAYER HYBRYDOWE (BroadcastChannel/localStorage + PeerJS WebRTC)
+         * Zapewnia natychmiastowe łączenie zarówno w dwóch kartach tej samej przeglądarki,
+         * jak i między dwoma komputerami w sieci szkolnej lub przez Internet.
+         */
+
+        // --- KONFIGURACJA I ZMIENNE GLOBALNE ---
+        const PEER_PREFIX = 'szkola-warcaby-v2-'; // Unikalny prefiks zapobiegający kolizjom ID na serwerze PeerJS
+        const ICE_SERVERS = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun.cloudflare.com:3478' }
+        ];
+
+        let peer = null;
+        let conn = null;
+        let bc = null; // BroadcastChannel dla komunikacji między kartami w tej samej przeglądarce
+        let transportMode = null; // 'local' (BroadcastChannel/storage) lub 'p2p' (PeerJS)
+        const tabId = Math.random().toString(36).substring(2, 10);
+
+        let myRole = null; // 'white' (twórca kodu) lub 'black' (dołączający)
+        let roomCode = '';
+        let opponentName = '';
+        let isConnected = false;
+        let peerReady = false;
+        let joinRetryTimer = null;
+        let joinTimeoutTimer = null;
+
+        // Stan gry
+        // Plansza 8x8: null lub obiekt { color: 'white' | 'black', king: boolean }
+        let board = [];
+        let currentTurn = 'white'; // 'white' zaczyna
+        let selectedSquare = null; // { r, c }
+        let validMoves = []; // Lista obiektów ruchu dla wybranego pionka
+        let mustContinueCaptureFrom = null; // { r, c } podczas bicia wielokrotnego
+        let lastMove = null; // { from: {r,c}, to: {r,c} }
+        let gameOver = false;
+
+        // --- ELEMENTY DOM ---
+        const myNameInput = document.getElementById('my-name-input');
+        const opponentNameBadge = document.getElementById('opponent-name-badge');
+        const opponentNameText = document.getElementById('opponent-name-text');
+        const toastBanner = document.getElementById('toast-banner');
+        const toastMessage = document.getElementById('toast-message');
+
+        const screenStart = document.getElementById('screen-start');
+        const screenCodeOnly = document.getElementById('screen-code-only');
+        const screenGame = document.getElementById('screen-game');
+
+        const joinCodeInput = document.getElementById('join-code-input');
+        const btnCreateCode = document.getElementById('btn-create-code');
+        const joinButtonWrapper = document.getElementById('join-button-wrapper');
+        const btnJoinGame = document.getElementById('btn-join-game');
+
+        const generatedCodeDisplay = document.getElementById('generated-code-display');
+        const copyHint = document.getElementById('copy-hint');
+
+        const boardEl = document.getElementById('board');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const playerColorBadge = document.getElementById('player-color-badge');
+        const gameOverPanel = document.getElementById('game-over-panel');
+        const gameOverTitle = document.getElementById('game-over-title');
+        const gameOverSubtitle = document.getElementById('game-over-subtitle');
+        const btnPlayAgain = document.getElementById('btn-play-again');
+
+        // --- WARSTWA TRANSPORTOWA (WYSYŁANIE WIADOMOŚCI P2P LUB LOKALNIE) ---
+        function isTransportOpen() {
+            if (!isConnected) return false;
+            if (transportMode === 'local') return true;
+            return Boolean(conn && conn.open);
+        }
+
+        function sendMessage(payload) {
+            if (!isTransportOpen()) return;
+
+            if (transportMode === 'local') {
+                const packet = {
+                    sender: tabId,
+                    room: roomCode,
+                    payload: payload,
+                    ts: Date.now(),
+                    nonce: Math.random()
+                };
+                if (bc) {
+                    try { bc.postMessage(packet); } catch (e) {}
+                }
+                try {
+                    localStorage.setItem('warcaby_msg_' + roomCode, JSON.stringify(packet));
+                } catch (e) {}
+            } else if (conn && conn.open) {
+                conn.send(payload);
+            }
+        }
+
+        function cleanupConnections() {
+            clearInterval(joinRetryTimer);
+            clearTimeout(joinTimeoutTimer);
+            if (bc) {
+                try { bc.close(); } catch (e) {}
+                bc = null;
+            }
+            if (conn) {
+                try { conn.close(); } catch (e) {}
+                conn = null;
+            }
+            if (peer) {
+                try { peer.destroy(); } catch (e) {}
+                peer = null;
+            }
+            peerReady = false;
+        }
+
+        // --- POWIADOMIENIA (ZAMIAST ALERT) ---
+        let toastTimeout = null;
+        function showToast(msg, isError = true) {
+            toastMessage.textContent = msg;
+            toastBanner.className = `fixed top-16 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all ${
+                isError ? 'bg-red-600' : 'bg-emerald-600'
+            }`;
+            toastBanner.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toastBanner.classList.add('hidden');
+            }, 3500);
+        }
+
+        // --- ZARZĄDZANIE NAZWĄ KONTA W LEWYM GÓRNYM ROGU ---
+        function updateOpponentNameUI() {
+            const trimmed = (opponentName || '').trim();
+            if (isConnected && trimmed.length > 0) {
+                opponentNameText.textContent = trimmed;
+                opponentNameBadge.classList.remove('hidden');
+            } else {
+                opponentNameBadge.classList.add('hidden');
+                opponentNameText.textContent = '';
+            }
+        }
+
+        function sendMyName() {
+            if (isTransportOpen()) {
+                sendMessage({
+                    type: 'NAME_UPDATE',
+                    name: myNameInput.value.trim()
+                });
+            }
+        }
+
+        myNameInput.addEventListener('input', () => {
+            sendMyName();
+        });
+
+        // --- PRZEŁĄCZANIE EKRANÓW ---
+        function showScreen(screenName) {
+            screenStart.classList.add('hidden');
+            screenCodeOnly.classList.add('hidden');
+            screenGame.classList.add('hidden');
+
+            if (screenName === 'start') {
+                screenStart.classList.remove('hidden');
+            } else if (screenName === 'code') {
+                screenCodeOnly.classList.remove('hidden');
+                screenCodeOnly.classList.add('flex');
+            } else if (screenName === 'game') {
+                screenGame.classList.remove('hidden');
+                screenGame.classList.add('flex');
+            }
+        }
+
+        // --- OBSŁUGA POLA "WPISZ KOD" I DYNAMICZNEGO GUZIKA "DOŁĄCZ" ---
+        joinCodeInput.addEventListener('input', () => {
+            const val = joinCodeInput.value.trim().toUpperCase();
+            if (val.length > 0) {
+                joinButtonWrapper.classList.remove('hidden');
+            } else {
+                joinButtonWrapper.classList.add('hidden');
+            }
+        });
+
+        joinCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && joinCodeInput.value.trim().length > 0) {
+                btnJoinGame.click();
+            }
+        });
+
+        // --- GENEROWANIE KRÓTKIEGO CZYTELNEGO KODU (5 ZNAKÓW BEZ MYLĄCYCH ZNAKÓW JAK O/0, I/1) ---
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        // Kopiowanie kodu po kliknięciu w ekranie oczekiwania
+        generatedCodeDisplay.addEventListener('click', () => {
+            if (!roomCode) return;
+            const tempInput = document.createElement('input');
+            tempInput.value = roomCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                copyHint.classList.remove('opacity-0');
+                setTimeout(() => copyHint.classList.add('opacity-0'), 2000);
+            } catch (err) {
+                // Ignoruj jeśli przeglądarka zablokuje
+            }
+            document.body.removeChild(tempInput);
+        });
+
+        // --- LOKALNY KANAŁ (BroadcastChannel + localStorage) DLA DWÓCH KART TEJ SAMEJ PRZEGLĄDARKI ---
+        function setupLocalChannel(code, isHost) {
+            const channelName = 'warcaby_room_' + code;
+            const storageRoomKey = 'warcaby_room_' + code;
+            const storageMsgKey = 'warcaby_msg_' + code;
+
+            if (isHost) {
+                try {
+                    localStorage.setItem(storageRoomKey, JSON.stringify({
+                        hostId: tabId,
+                        createdAt: Date.now()
+                    }));
+                } catch (e) {}
+            }
+
+            if ('BroadcastChannel' in window) {
+                bc = new BroadcastChannel(channelName);
+                bc.onmessage = (event) => {
+                    handleLocalPacket(event.data);
+                };
+            }
+
+            window.addEventListener('storage', (event) => {
+                if (event.key === storageMsgKey && event.newValue) {
+                    try {
+                        const packet = JSON.parse(event.newValue);
+                        handleLocalPacket(packet);
+                    } catch (e) {}
+                }
+            });
+
+            if (!isHost) {
+                // Gość wysyła lokalne żądanie dołączenia
+                const helloPacket = {
+                    sender: tabId,
+                    room: code,
+                    payload: { type: 'LOCAL_JOIN_REQUEST' },
+                    ts: Date.now(),
+                    nonce: Math.random()
+                };
+                if (bc) {
+                    try { bc.postMessage(helloPacket); } catch (e) {}
+                }
+                try {
+                    localStorage.setItem(storageMsgKey, JSON.stringify(helloPacket));
+                } catch (e) {}
+            }
+        }
+
+        function handleLocalPacket(packet) {
+            if (!packet || packet.sender === tabId || packet.room !== roomCode) return;
+            const data = packet.payload;
+            if (!data) return;
+
+            // Host odbiera żądanie połączenia z drugiej karty tej samej przeglądarki
+            if (myRole === 'white' && !isConnected && data.type === 'LOCAL_JOIN_REQUEST') {
+                transportMode = 'local';
+                isConnected = true;
+                // Zamknij PeerJS, ponieważ połączono lokalnie bez opóźnień
+                if (peer) {
+                    try { peer.destroy(); } catch (e) {}
+                    peer = null;
+                }
+                initBoardState();
+                sendMessage({
+                    type: 'SYNC_START',
+                    board: board,
+                    currentTurn: currentTurn,
+                    name: myNameInput.value.trim()
+                });
+                startSyncedGameUI();
+                return;
+            }
+
+            // Gość odbiera potwierdzenie startu z drugiej karty
+            if (myRole === 'black' && !isConnected && data.type === 'SYNC_START') {
+                transportMode = 'local';
+                isConnected = true;
+                clearInterval(joinRetryTimer);
+                clearTimeout(joinTimeoutTimer);
+                resetJoinButton();
+                if (peer) {
+                    try { peer.destroy(); } catch (e) {}
+                    peer = null;
+                }
+                sendMyName();
+                handleIncomingGameData(data);
+                return;
+            }
+
+            // Standardowa wymiana danych gry w trybie lokalnym
+            if (isConnected && transportMode === 'local') {
+                handleIncomingGameData(data);
+            }
+        }
+
+        // --- TWORZENIE POKOJU (GRACZ BIAŁY - HOST) ---
+        btnCreateCode.addEventListener('click', () => {
+            btnCreateCode.disabled = true;
+            cleanupConnections();
+            isConnected = false;
+            myRole = 'white';
+            roomCode = generateRoomCode();
+            generatedCodeDisplay.textContent = roomCode;
+            showScreen('code');
+
+            // 1. Uruchom nasłuch lokalny (dla 2 kart w tej samej przeglądarce)
+            setupLocalChannel(roomCode, true);
+
+            // 2. Uruchom rejestrację w sieci P2P PeerJS (dla 2 różnych komputerów)
+            initPeerAsHost(roomCode);
+        });
+
+        function initPeerAsHost(code) {
+            if (peer) {
+                try { peer.destroy(); } catch (e) {}
+            }
+
+            peerReady = false;
+            peer = new Peer(PEER_PREFIX + code, {
+                debug: 0,
+                config: { iceServers: ICE_SERVERS }
+            });
+
+            peer.on('open', () => {
+                peerReady = true;
+                generatedCodeDisplay.textContent = code;
+            });
+
+            peer.on('connection', (incomingConn) => {
+                if (isConnected || (conn && conn.open)) {
+                    incomingConn.close();
+                    return;
+                }
+                conn = incomingConn;
+                transportMode = 'p2p';
+                setupPeerConnectionHandlers();
+            });
+
+            peer.on('disconnected', () => {
+                if (!isConnected && peer && !peer.destroyed) {
+                    try { peer.reconnect(); } catch (e) {}
+                }
+            });
+
+            peer.on('error', (err) => {
+                if (isConnected) return;
+                if (err.type === 'unavailable-id') {
+                    // Jeśli kod jest już zajęty na serwerze sygnalizacyjnym, wygeneruj nowy
+                    roomCode = generateRoomCode();
+                    generatedCodeDisplay.textContent = roomCode;
+                    setupLocalChannel(roomCode, true);
+                    initPeerAsHost(roomCode);
+                } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
+                    // Ponów rejestrację za 1.5s, zachowując ten sam kod i działający tryb lokalny
+                    setTimeout(() => {
+                        if (!isConnected && myRole === 'white') {
+                            initPeerAsHost(roomCode);
+                        }
+                    }, 1500);
+                }
+            });
+        }
+
+        // --- DOŁĄCZANIE DO POKOJU (GRACZ CZARNY - GUEST) ---
+        btnJoinGame.addEventListener('click', () => {
+            const rawCode = joinCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!rawCode) return;
+
+            cleanupConnections();
+            isConnected = false;
+            btnJoinGame.disabled = true;
+            btnJoinGame.textContent = 'Łączenie...';
+            myRole = 'black';
+            roomCode = rawCode;
+
+            // 1. Sprawdź natychmiastowo kanał lokalny (dla 2 kart w tej samej przeglądarce)
+            setupLocalChannel(roomCode, false);
+
+            // 2. Równolegle łącz przez PeerJS z ponawianiem prób (dla 2 różnych komputerów)
+            peer = new Peer({
+                debug: 0,
+                config: { iceServers: ICE_SERVERS }
+            });
+
+            const attemptPeerConnect = () => {
+                if (isConnected || !peer || peer.destroyed || !peer.open) return;
+                if (conn) {
+                    try { conn.close(); } catch (e) {}
+                }
+                conn = peer.connect(PEER_PREFIX + roomCode, {
+                    reliable: true
+                });
+                setupPeerConnectionHandlers();
+            };
+
+            peer.on('open', () => {
+                attemptPeerConnect();
+                // Ponawiaj próbę co 2 sekundy (w razie gdyby host właśnie kończył rejestrację ID)
+                joinRetryTimer = setInterval(() => {
+                    if (!isConnected) {
+                        attemptPeerConnect();
+                    } else {
+                        clearInterval(joinRetryTimer);
+                    }
+                }, 2000);
+            });
+
+            peer.on('error', (err) => {
+                // Ignoruj przejściowe 'peer-unavailable' podczas ponawiania w oknie 10s
+                if (err.type !== 'peer-unavailable' && !isConnected) {
+                    clearInterval(joinRetryTimer);
+                    clearTimeout(joinTimeoutTimer);
+                    showToast('Błąd połączenia sieciowego: ' + err.type);
+                    resetJoinButton();
+                }
+            });
+
+            // Ostateczny limit czasu (10 sekund) na znalezienie pokoju lokalnie lub przez P2P
+            joinTimeoutTimer = setTimeout(() => {
+                clearInterval(joinRetryTimer);
+                if (!isConnected) {
+                    showToast('Nie znaleziono pokoju o kodzie: ' + roomCode);
+                    resetJoinButton();
+                    cleanupConnections();
+                }
+            }, 10000);
+        });
+
+        function resetJoinButton() {
+            btnJoinGame.disabled = false;
+            btnJoinGame.textContent = 'Dołącz';
+        }
+
+        // --- OBSŁUGA POŁĄCZENIA P2P I SYNCHRONIZACJI ---
+        function setupPeerConnectionHandlers() {
+            conn.on('open', () => {
+                if (isConnected && transportMode === 'local') {
+                    conn.close();
+                    return;
+                }
+                transportMode = 'p2p';
+                isConnected = true;
+                clearInterval(joinRetryTimer);
+                clearTimeout(joinTimeoutTimer);
+                resetJoinButton();
+
+                // Wymiana nazw kont zaraz po połączeniu
+                sendMyName();
+
+                // Host inicjuje stan gry i wysyła synchronizację startową
+                if (myRole === 'white') {
+                    initBoardState();
+                    sendMessage({
+                        type: 'SYNC_START',
+                        board: board,
+                        currentTurn: currentTurn,
+                        name: myNameInput.value.trim()
+                    });
+                    startSyncedGameUI();
+                }
+            });
+
+            conn.on('data', (data) => {
+                handleIncomingGameData(data);
+            });
+
+            conn.on('close', () => {
+                if (transportMode === 'p2p' && isConnected) {
+                    isConnected = false;
+                    updateOpponentNameUI();
+                    showToast('Przeciwnik rozłączył się z gry.');
+                }
+            });
+
+            conn.on('error', () => {
+                if (transportMode === 'p2p' && isConnected) {
+                    showToast('Wystąpił błąd połączenia z przeciwnikiem.');
+                }
+            });
+        }
+
+        function handleIncomingGameData(data) {
+            if (!data || typeof data !== 'object') return;
+
+            switch (data.type) {
+                case 'NAME_UPDATE':
+                    opponentName = data.name || '';
+                    updateOpponentNameUI();
+                    break;
+
+                case 'SYNC_START':
+                    // Odbierane przez gościa (czarnego) od hosta (białego)
+                    board = data.board;
+                    currentTurn = data.currentTurn;
+                    opponentName = data.name || '';
+                    selectedSquare = null;
+                    validMoves = [];
+                    mustContinueCaptureFrom = null;
+                    lastMove = null;
+                    gameOver = false;
+                    updateOpponentNameUI();
+                    startSyncedGameUI();
+                    break;
+
+                case 'MOVE':
+                    // Synchronizacja ruchu przeciwnika
+                    board = data.board;
+                    currentTurn = data.currentTurn;
+                    lastMove = data.lastMove;
+                    gameOver = data.gameOver || false;
+                    selectedSquare = null;
+                    validMoves = [];
+                    mustContinueCaptureFrom = null;
+                    renderBoard();
+                    updateTurnUI();
+                    if (gameOver) {
+                        showGameOver(data.winner);
+                    }
+                    break;
+
+                case 'RESTART':
+                    // Synchronizacja nowej partii
+                    board = data.board;
+                    currentTurn = data.currentTurn;
+                    selectedSquare = null;
+                    validMoves = [];
+                    mustContinueCaptureFrom = null;
+                    lastMove = null;
+                    gameOver = false;
+                    gameOverPanel.classList.add('hidden');
+                    renderBoard();
+                    updateTurnUI();
+                    showToast('Rozpoczęto nową grę!', false);
+                    break;
+            }
+        }
+
+        function startSyncedGameUI() {
+            gameOverPanel.classList.add('hidden');
+            playerColorBadge.textContent = myRole === 'white' ? 'Grasz: Białe' : 'Grasz: Czarne';
+            showScreen('game');
+            renderBoard();
+            updateTurnUI();
+        }
+
+        // --- INICJALIZACJA PLANSZY DO WARCABÓW (8x8) ---
+        function initBoardState() {
+            board = Array.from({ length: 8 }, () => Array(8).fill(null));
+            // Rzędy 0, 1, 2: Czarne (na ciemnych polach, gdzie (r + c) % 2 === 1)
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if ((r + c) % 2 === 1) {
+                        board[r][c] = { color: 'black', king: false };
+                    }
+                }
+            }
+            // Rzędy 5, 6, 7: Białe (na ciemnych polach)
+            for (let r = 5; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if ((r + c) % 2 === 1) {
+                        board[r][c] = { color: 'white', king: false };
+                    }
+                }
+            }
+            currentTurn = 'white';
+            selectedSquare = null;
+            validMoves = [];
+            mustContinueCaptureFrom = null;
+            lastMove = null;
+            gameOver = false;
+        }
+
+        // --- ZASADY WARCABÓW KLASYCZNYCH (RUCHY, BICIA, DAMKI) ---
+        function isInside(r, c) {
+            return r >= 0 && r < 8 && c >= 0 && c < 8;
+        }
+
+        /**
+         * Zwraca wszystkie możliwe bicia dla pojedynczego pionka na polu (r, c)
+         */
+        function getCapturesForPiece(r, c, boardState) {
+            const piece = boardState[r][c];
+            if (!piece) return [];
+            const captures = [];
+            const dirs = [
+                [-1, -1], [-1, 1],
+                [1, -1], [1, 1]
+            ];
+
+            if (!piece.king) {
+                // Zwykły pionek: bije o 2 pola po przekątnej (do przodu i do tyłu)
+                for (const [dr, dc] of dirs) {
+                    const midR = r + dr;
+                    const midC = c + dc;
+                    const landR = r + 2 * dr;
+                    const landC = c + 2 * dc;
+
+                    if (isInside(landR, landC)) {
+                        const midPiece = boardState[midR][midC];
+                        const landPiece = boardState[landR][landC];
+                        if (midPiece && midPiece.color !== piece.color && !landPiece) {
+                            captures.push({
+                                from: { r, c },
+                                to: { r: landR, c: landC },
+                                captured: { r: midR, c: midC }
+                            });
+                        }
+                    }
+                }
+            } else {
+                // Damka: porusza się i bije na dowolną odległość po przekątnej
+                for (const [dr, dc] of dirs) {
+                    let step = 1;
+                    let enemyPos = null;
+
+                    while (true) {
+                        const currR = r + dr * step;
+                        const currC = c + dc * step;
+                        if (!isInside(currR, currC)) break;
+
+                        const cell = boardState[currR][currC];
+                        if (!enemyPos) {
+                            if (!cell) {
+                                step++;
+                                continue;
+                            } else if (cell.color === piece.color) {
+                                break; // Własny pionek blokuje linię
+                            } else {
+                                enemyPos = { r: currR, c: currC };
+                                step++;
+                            }
+                        } else {
+                            // Po napotkaniu pionka wroga każde wolne pole za nim jest legalnym lądowaniem
+                            if (!cell) {
+                                captures.push({
+                                    from: { r, c },
+                                    to: { r: currR, c: currC },
+                                    captured: enemyPos
+                                });
+                                step++;
+                            } else {
+                                break; // Kolejny pionek blokuje dalsze lądowanie
+                            }
+                        }
+                    }
+                }
+            }
+
+            return captures;
+        }
+
+        /**
+         * Zwraca zwykłe ruchy (bez bicia) dla pionka na polu (r, c)
+         */
+        function getRegularMovesForPiece(r, c, boardState) {
+            const piece = boardState[r][c];
+            if (!piece) return [];
+            const moves = [];
+
+            if (!piece.king) {
+                const forwardDir = piece.color === 'white' ? -1 : 1;
+                const dirs = [
+                    [forwardDir, -1],
+                    [forwardDir, 1]
+                ];
+                for (const [dr, dc] of dirs) {
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (isInside(nr, nc) && !boardState[nr][nc]) {
+                        moves.push({
+                            from: { r, c },
+                            to: { r: nr, c: nc },
+                            captured: null
+                        });
+                    }
+                }
+            } else {
+                // Damka: dowolna liczba wolnych pól po przekątnej
+                const dirs = [
+                    [-1, -1], [-1, 1],
+                    [1, -1], [1, 1]
+                ];
+                for (const [dr, dc] of dirs) {
+                    let step = 1;
+                    while (true) {
+                        const nr = r + dr * step;
+                        const nc = c + dc * step;
+                        if (!isInside(nr, nc) || boardState[nr][nc]) break;
+                        moves.push({
+                            from: { r, c },
+                            to: { r: nr, c: nc },
+                            captured: null
+                        });
+                        step++;
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        /**
+         * Sprawdza wszystkie legalne ruchy dla danego koloru (z uwzględnieniem przymusu bicia)
+         */
+        function getAllLegalMovesForColor(color, boardState, forcedFrom = null) {
+            let allCaptures = [];
+            let allRegular = [];
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (forcedFrom && (forcedFrom.r !== r || forcedFrom.c !== c)) continue;
+                    const piece = boardState[r][c];
+                    if (piece && piece.color === color) {
+                        const caps = getCapturesForPiece(r, c, boardState);
+                        allCaptures.push(...caps);
+                        if (!forcedFrom) {
+                            const regs = getRegularMovesForPiece(r, c, boardState);
+                            allRegular.push(...regs);
+                        }
+                    }
+                }
+            }
+
+            // Obowiązek bicia, jeśli jakiekolwiek bicie jest dostępne
+            if (allCaptures.length > 0) {
+                return allCaptures;
+            }
+            return allRegular;
+        }
+
+        // --- INTERAKCJA Z PLANSZĄ ---
+        function handleSquareClick(r, c) {
+            if (gameOver || !isConnected) return;
+            if (currentTurn !== myRole) return; // Nie Twoja tura
+
+            // Sprawdź czy kliknięto w podświetlone pole docelowe ruchu
+            const chosenMove = validMoves.find(m => m.to.r === r && m.to.c === c);
+            if (chosenMove) {
+                executeMove(chosenMove);
+                return;
+            }
+
+            // Jeśli gracz jest w trakcie bicia wielokrotnego, nie może zmienić pionka
+            if (mustContinueCaptureFrom) {
+                return;
+            }
+
+            // Sprawdź czy kliknięto własny pionek
+            const clickedPiece = board[r][c];
+            if (clickedPiece && clickedPiece.color === myRole) {
+                const legalMoves = getAllLegalMovesForColor(myRole, board);
+                const pieceMoves = legalMoves.filter(m => m.from.r === r && m.from.c === c);
+
+                if (pieceMoves.length > 0) {
+                    selectedSquare = { r, c };
+                    validMoves = pieceMoves;
+                } else {
+                    // Jeśli pionek nie ma legalnych ruchów (np. inny pionek ma przymus bicia)
+                    selectedSquare = { r, c };
+                    validMoves = [];
+                    const hasAnyCapture = legalMoves.some(m => m.captured !== null);
+                    if (hasAnyCapture) {
+                        showToast('Masz obowiązkowe bicie innym pionkiem!');
+                    }
+                }
+                renderBoard();
+            } else {
+                selectedSquare = null;
+                validMoves = [];
+                renderBoard();
+            }
+        }
+
+        function executeMove(move) {
+            const { from, to, captured } = move;
+            const piece = board[from.r][from.c];
+
+            // Przesuń pionek
+            board[to.r][to.c] = piece;
+            board[from.r][from.c] = null;
+
+            // Usuń zbity pionek, jeśli było bicie
+            if (captured) {
+                board[captured.r][captured.c] = null;
+            }
+
+            lastMove = { from, to };
+
+            // Sprawdź czy po biciu tym samym pionkiem jest kolejne bicie (bicie wielokrotne)
+            if (captured) {
+                const nextCaptures = getCapturesForPiece(to.r, to.c, board);
+                if (nextCaptures.length > 0) {
+                    // Kontynuacja tury tym samym pionkiem!
+                    mustContinueCaptureFrom = { r: to.r, c: to.c };
+                    selectedSquare = { r: to.r, c: to.c };
+                    validMoves = nextCaptures;
+                    renderBoard();
+
+                    // Wyślij stan pośredni do przeciwnika, aby widział bicie na żywo
+                    if (isTransportOpen()) {
+                        sendMessage({
+                            type: 'MOVE',
+                            board: board,
+                            currentTurn: currentTurn, // Nadal tura bijącego
+                            lastMove: lastMove,
+                            gameOver: false
+                        });
+                    }
+                    return;
+                }
+            }
+
+            // Promocja na damkę (po zakończeniu ruchu/sekwencji bić)
+            if (!piece.king) {
+                if (piece.color === 'white' && to.r === 0) {
+                    piece.king = true;
+                } else if (piece.color === 'black' && to.r === 7) {
+                    piece.king = true;
+                }
+            }
+
+            // Zakończ turę i przekaż przeciwnikowi
+            mustContinueCaptureFrom = null;
+            selectedSquare = null;
+            validMoves = [];
+            currentTurn = myRole === 'white' ? 'black' : 'white';
+
+            // Sprawdź warunek końca gry (czy przeciwnik ma jakiekolwiek ruchy/pionki)
+            const opponentMoves = getAllLegalMovesForColor(currentTurn, board);
+            let winner = null;
+            if (opponentMoves.length === 0) {
+                gameOver = true;
+                winner = myRole;
+            }
+
+            renderBoard();
+            updateTurnUI();
+
+            // Wyślij zsynchronizowany ruch do drugiego komputera
+            if (isTransportOpen()) {
+                sendMessage({
+                    type: 'MOVE',
+                    board: board,
+                    currentTurn: currentTurn,
+                    lastMove: lastMove,
+                    gameOver: gameOver,
+                    winner: winner
+                });
+            }
+
+            if (gameOver) {
+                showGameOver(winner);
+            }
+        }
+
+        // --- RENDEROWANIE SZACHOWNICY (PERSPEKTYWA BIAŁYCH LUB CZARNYCH) ---
+        function renderBoard() {
+            boardEl.innerHTML = '';
+
+            // Oblicz pionki, które mają obowiązkowe bicie w tej turze
+            const mandatoryCaptureSquares = new Set();
+            if (!gameOver && currentTurn === myRole) {
+                const legalMoves = getAllLegalMovesForColor(myRole, board, mustContinueCaptureFrom);
+                legalMoves.forEach(m => {
+                    if (m.captured) {
+                        mandatoryCaptureSquares.add(`${m.from.r},${m.from.c}`);
+                    }
+                });
+            }
+
+            // Jeśli gramy czarnymi, obracamy widok planszy o 180 stopni, aby nasze pionki były na dole
+            const rowIndices = myRole === 'black' ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+            const colIndices = myRole === 'black' ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+
+            for (const r of rowIndices) {
+                for (const c of colIndices) {
+                    const square = document.createElement('div');
+                    const isDark = (r + c) % 2 === 1;
+                    square.className = `square ${isDark ? 'square-dark' : 'square-light'}`;
+
+                    // Podświetlenie wybranego pola
+                    if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
+                        square.classList.add('square-selected');
+                    }
+
+                    // Podświetlenie ostatniego ruchu
+                    if (lastMove && ((lastMove.from.r === r && lastMove.from.c === c) || (lastMove.to.r === r && lastMove.to.c === c))) {
+                        square.classList.add('square-last-move');
+                    }
+
+                    // Sprawdź czy pole jest celem legalnego ruchu
+                    const validMoveHere = validMoves.find(m => m.to.r === r && m.to.c === c);
+                    if (validMoveHere) {
+                        const marker = document.createElement('div');
+                        marker.className = validMoveHere.captured ? 'valid-capture-ring' : 'valid-move-dot';
+                        square.appendChild(marker);
+                    }
+
+                    // Renderowanie pionka
+                    const piece = board[r][c];
+                    if (piece) {
+                        const pieceEl = document.createElement('div');
+                        pieceEl.className = `piece ${piece.color === 'white' ? 'piece-white' : 'piece-black'}`;
+
+                        if (!gameOver && currentTurn === myRole && piece.color === myRole) {
+                            pieceEl.classList.add('piece-clickable');
+                        }
+
+                        if (mandatoryCaptureSquares.has(`${r},${c}`)) {
+                            pieceEl.classList.add('piece-must-capture');
+                        }
+
+                        // Ikona korony dla damki
+                        if (piece.king) {
+                            pieceEl.innerHTML = `
+                                <svg class="king-crown" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                                </svg>
+                            `;
+                        }
+
+                        square.appendChild(pieceEl);
+                    }
+
+                    square.addEventListener('click', () => handleSquareClick(r, c));
+                    boardEl.appendChild(square);
+                }
+            }
+        }
+
+        // --- AKTUALIZACJA WSKAŹNIKA TURY ---
+        function updateTurnUI() {
+            if (gameOver) {
+                turnIndicator.textContent = 'Koniec partii';
+                turnIndicator.className = 'px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border bg-gray-200 text-gray-800 border-gray-300';
+                return;
+            }
+
+            if (currentTurn === myRole) {
+                turnIndicator.textContent = mustContinueCaptureFrom ? 'Twój ruch (bij dalej!)' : 'Twój ruch';
+                turnIndicator.className = 'px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border bg-emerald-600 text-white border-emerald-700';
+            } else {
+                turnIndicator.textContent = 'Ruch przeciwnika';
+                turnIndicator.className = 'px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border bg-white text-gray-700 border-gray-300';
+            }
+        }
+
+        // --- EKRAN KOŃCA GRY I RESTART ---
+        function showGameOver(winner) {
+            gameOverPanel.classList.remove('hidden');
+            if (winner === myRole) {
+                gameOverTitle.textContent = 'Wygrałeś! 🎉';
+                gameOverSubtitle.textContent = 'Gratulacje, świetna partia warcabów!';
+            } else {
+                gameOverTitle.textContent = 'Przegrałeś';
+                gameOverSubtitle.textContent = 'Przeciwnik wygrał tę partię.';
+            }
+        }
+
+        btnPlayAgain.addEventListener('click', () => {
+            if (!isTransportOpen()) {
+                showToast('Brak połączenia z przeciwnikiem.');
+                return;
+            }
+            initBoardState();
+            gameOverPanel.classList.add('hidden');
+            renderBoard();
+            updateTurnUI();
+
+            sendMessage({
+                type: 'RESTART',
+                board: board,
+                currentTurn: currentTurn
+            });
+        });
+    </script>
+</body>
+</html>
