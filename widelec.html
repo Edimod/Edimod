@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wisielec Online</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MQTT.js (WSS na porcie 443 - działa na GitHub Pages, LTE/5G oraz w sieciach szkolnych) -->
+    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+    <!-- Czcionka Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Animacja pojawiania się */
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- LEWY GÓRNY RÓG: Nazwa konta oraz status "Grasz z [NAZWA]" -->
+    <header class="fixed top-0 left-0 z-40 p-3 sm:p-4 flex flex-wrap items-center gap-3 max-w-full">
+        <input
+            type="text"
+            id="my-name-input"
+            maxlength="24"
+            placeholder="Twoja nazwa konta"
+            autocomplete="off"
+            class="bg-white/95 backdrop-blur border border-gray-300 text-gray-800 text-sm sm:text-base font-medium rounded-xl px-3.5 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-amber-600 w-44 sm:w-56 transition"
+        />
+        <div id="opponent-name-badge" class="hidden bg-amber-900 text-amber-50 text-sm sm:text-base font-semibold px-3.5 py-2 rounded-xl shadow-sm fade-in">
+            Grasz z <span id="opponent-name-text" class="font-bold underline decoration-amber-400"></span>
+        </div>
+    </header>
+
+    <!-- Komunikat powiadomienia -->
+    <div id="toast-banner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw]">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- GŁÓWNA PRZESTRZEŃ ROBOCZA -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 pt-20 pb-12 w-full">
+
+        <!-- EKRAN 1: STARTOWY (Stwórz / Dołącz) -->
+        <section id="screen-start" class="w-full max-w-xl flex flex-col items-center justify-center fade-in">
+            <div class="flex items-center justify-center gap-4 sm:gap-5 mb-8 select-none">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white border-2 border-gray-200 rounded-2xl shadow-md flex items-center justify-center text-3xl sm:text-4xl font-black">
+                    🪢
+                </div>
+                <div class="flex flex-col leading-none text-left">
+                    <span class="text-3xl sm:text-4xl font-black tracking-tight text-gray-900">
+                        Wisielec
+                    </span>
+                    <span class="text-2xl sm:text-3xl font-extrabold tracking-wide text-amber-600 mt-1">
+                        Online
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full">
+                <input
+                    type="text"
+                    id="join-code-input"
+                    maxlength="10"
+                    placeholder="Wpisz kod"
+                    autocomplete="off"
+                    class="w-full sm:w-48 text-center uppercase tracking-widest font-bold text-lg bg-white border-2 border-gray-300 text-gray-800 rounded-xl px-4 py-3 shadow-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 transition"
+                />
+                <span class="text-gray-500 font-semibold text-base sm:text-lg px-1 select-none">
+                    Albo
+                </span>
+                <button
+                    id="btn-create-code"
+                    type="button"
+                    class="w-full sm:w-auto bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold text-lg px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Stwórz Kod
+                </button>
+            </div>
+
+            <div id="join-button-wrapper" class="hidden mt-5 w-full sm:w-auto flex justify-center fade-in">
+                <button
+                    id="btn-join-game"
+                    type="button"
+                    class="w-full sm:w-56 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-lg px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Dołącz
+                </button>
+            </div>
+        </section>
+
+        <!-- EKRAN 2: TYLKO KOD (Czeka na 2. gracza) -->
+        <section id="screen-code-only" class="hidden flex-col items-center justify-center text-center fade-in">
+            <div
+                id="generated-code-display"
+                title="Kliknij, aby skopiować kod"
+                class="text-6xl sm:text-8xl font-extrabold tracking-[0.18em] text-gray-900 bg-white border-2 border-gray-200 px-8 py-6 rounded-2xl shadow-md cursor-pointer hover:border-amber-500 active:scale-95 transition select-all"
+            >
+                ...
+            </div>
+            <p id="host-status-hint" class="mt-3 text-xs text-gray-400 font-medium transition-opacity">
+                Rejestrowanie pokoju...
+            </p>
+        </section>
+
+        <!-- EKRAN 3: LOBBY WYBORU RÓL (Kto pierwszy, ten lepszy + obustronna zgoda) -->
+        <section id="screen-roles" class="hidden flex-col items-center justify-center w-full max-w-xl fade-in">
+            <h2 class="text-2xl font-extrabold text-gray-900 mb-2">Wybierz swoją rolę</h2>
+            <p class="text-sm text-gray-500 mb-6 text-center">Obaj gracze muszą wybrać rolę i kliknąć gotowość, aby rozpocząć.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mb-6">
+                <!-- Rola: Zgadujący -->
+                <div id="card-role-zgadujacy" class="bg-white border-2 border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-between shadow-sm transition">
+                    <span class="text-4xl mb-2">🕵️‍♂️</span>
+                    <h3 class="font-extrabold text-lg text-gray-800 mb-1">Zgadujący</h3>
+                    <p class="text-xs text-gray-500 text-center mb-4">Odgaduje literki ukrytego słowa.</p>
+                    <button id="btn-select-zgadujacy" type="button" class="w-full bg-gray-100 hover:bg-amber-600 hover:text-white font-bold py-2.5 px-4 rounded-xl transition text-sm cursor-pointer">Wybierz tę rolę</button>
+                </div>
+
+                <!-- Rola: Wymyślający -->
+                <div id="card-role-wymyslajacy" class="bg-white border-2 border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-between shadow-sm transition">
+                    <span class="text-4xl mb-2">💡</span>
+                    <h3 class="font-extrabold text-lg text-gray-800 mb-1">Wymyślający</h3>
+                    <p class="text-xs text-gray-500 text-center mb-4">Wymyśla słowo i obserwuje ruchy.</p>
+                    <button id="btn-select-wymyslajacy" type="button" class="w-full bg-gray-100 hover:bg-amber-600 hover:text-white font-bold py-2.5 px-4 rounded-xl transition text-sm cursor-pointer">Wybierz tę rolę</button>
+                </div>
+            </div>
+
+            <!-- Panel gotowości -->
+            <div id="ready-panel" class="hidden w-full bg-white border border-gray-200 rounded-2xl p-5 shadow-sm text-center flex flex-col items-center gap-3 fade-in">
+                <span id="role-status-text" class="font-bold text-gray-700 text-sm">Masz wybraną rolę. Możesz ją anulować lub potwierdzić gotowość.</span>
+                <div class="flex gap-3 w-full max-w-xs">
+                    <button id="btn-cancel-role" type="button" class="flex-1 bg-gray-200 hover:bg-gray-300 font-bold py-2.5 px-4 rounded-xl text-gray-700 text-sm transition cursor-pointer">Anuluj rolę</button>
+                    <button id="btn-set-ready" type="button" class="flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-2.5 px-4 rounded-xl text-white text-sm transition cursor-pointer">Gotów! 🚀</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- EKRAN 4: GRA W WISIELEC + SAFE CHAT -->
+        <section id="screen-game" class="hidden flex-col lg:flex-row items-center lg:items-start justify-center gap-6 w-full max-w-5xl fade-in">
+
+            <!-- LEWA / ŚRODKOWA KOLUMNA: Wisielec -->
+            <div class="flex flex-col items-center justify-center w-full max-w-xl">
+                <!-- Pasek statusu roli -->
+                <div id="game-role-badge" class="mb-4 px-5 py-2 rounded-full font-bold text-base shadow-sm border bg-amber-100 text-amber-900 border-amber-300">
+                    Twoja rola: ---
+                </div>
+
+                <!-- Rysunek wisielca -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm w-full flex flex-col items-center mb-5">
+                    <svg height="160" width="140" class="stroke-gray-800 fill-none stroke-[4] stroke-linecap-round">
+                        <!-- Szubienica zawsze widoczna -->
+                        <line x1="20" y1="150" x2="100" y2="150" />
+                        <line x1="40" y1="20" x2="40" y2="150" />
+                        <line x1="40" y1="20" x2="100" y2="20" />
+                        <line x1="100" y1="20" x2="100" y2="50" />
+
+                        <!-- Części wisielca (pokazywane w zależności od błędów: 0 do 6) -->
+                        <circle id="part-head" cx="100" cy="65" r="12" class="hidden" />
+                        <line id="part-body" x1="100" y1="77" x2="100" y2="115" class="hidden" />
+                        <line id="part-left-arm" x1="100" y1="90" x2="75" y2="105" class="hidden" />
+                        <line id="part-right-arm" x1="100" y1="90" x2="125" y2="105" class="hidden" />
+                        <line id="part-left-leg" x1="100" y1="115" x2="80" y2="140" class="hidden" />
+                        <line id="part-right-leg" x1="100" y1="115" x2="120" y2="140" class="hidden" />
+                    </svg>
+                    <div id="mistakes-counter" class="text-xs font-bold text-red-600 mt-2">Błędy: 0 / 6</div>
+                </div>
+
+                <!-- WIDOK DLA WYMYŚLAJĄCEGO -->
+                <div id="view-wymyslajacy" class="hidden w-full bg-white border border-gray-200 rounded-2xl p-5 shadow-sm text-center mb-5 fade-in">
+                    <h3 class="text-sm font-extrabold uppercase tracking-wider text-gray-400 mb-2">Wymyśl tajne słowo</h3>
+                    <div id="word-input-container" class="flex gap-2 justify-center mb-3">
+                        <input type="password" id="secret-word-input" maxlength="16" placeholder="Wpisz słowo..." class="border-2 border-gray-300 rounded-xl px-4 py-2 font-bold uppercase tracking-widest text-center w-56 focus:outline-none focus:border-amber-600">
+                        <button id="btn-submit-word" type="button" class="bg-amber-700 hover:bg-amber-800 text-white font-bold px-5 py-2 rounded-xl transition cursor-pointer">Ustaw</button>
+                    </div>
+                    <div id="w-status-box" class="text-sm font-semibold text-gray-600"></div>
+                </div>
+
+                <!-- WIDOK DLA ZGADUJĄCEGO -->
+                <div id="view-zgadujacy" class="hidden w-full bg-white border border-gray-200 rounded-2xl p-5 shadow-sm text-center mb-5 fade-in">
+                    <div id="word-display" class="text-3xl sm:text-4xl font-black tracking-[0.25em] text-gray-900 mb-6 min-h-[48px] flex items-center justify-center">
+                        _ _ _ _
+                    </div>
+                    <div id="keyboard-container" class="flex flex-wrap gap-1.5 justify-center max-w-md mx-auto">
+                        <!-- Generowane dynamicznie literki -->
+                    </div>
+                </div>
+
+                <!-- Panel końca gry -->
+                <div id="game-over-panel" class="hidden w-full bg-white border border-gray-200 rounded-2xl p-5 shadow-lg text-center max-w-sm fade-in">
+                    <h2 id="game-over-title" class="text-2xl font-extrabold text-gray-900 mb-1">Koniec gry!</h2>
+                    <p id="game-over-subtitle" class="text-sm text-gray-600 mb-4"></p>
+                    <button id="btn-play-again" type="button" class="w-full bg-amber-700 hover:bg-amber-800 text-white font-bold py-3 px-6 rounded-xl shadow transition cursor-pointer">Zagraj ponownie</button>
+                </div>
+            </div>
+
+            <!-- PRAWA KOLUMNA: SAFE CHAT -->
+            <aside class="w-full max-w-md lg:w-72 bg-white border border-gray-200 rounded-2xl shadow-md p-4 flex flex-col lg:mt-12">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-gray-700">Safe Chat</h3>
+                    </div>
+                    <span class="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">Tylko gotowe słowa</span>
+                </div>
+
+                <div id="safe-chat-messages" class="h-36 lg:h-52 overflow-y-auto flex flex-col gap-2 pr-1 mb-3 text-sm bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                    <div class="text-xs text-gray-400 text-center my-auto select-none">
+                        Kliknij słowo poniżej, aby wysłać
+                    </div>
+                </div>
+
+                <div id="safe-chat-buttons" class="flex flex-wrap gap-1.5">
+                    <button type="button" data-phrase="Hej" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Hej</button>
+                    <button type="button" data-phrase="Siema" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Siema</button>
+                    <button type="button" data-phrase="Nie" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Nie</button>
+                    <button type="button" data-phrase="Tak" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Tak</button>
+                    <button type="button" data-phrase="GG" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">GG</button>
+                    <button type="button" data-phrase="xd" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">xd</button>
+                    <button type="button" data-phrase="muszę kończyć" class="safe-chat-btn bg-gray-100 hover:bg-red-100 hover:text-red-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">muszę kończyć</button>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <footer class="w-full text-center py-3 text-xs text-gray-400 font-medium select-none">
+        created by edimod
+    </footer>
+
+    <script>
+        /**
+         * WISIELEC ONLINE MULTIPLAYER (MQTT + Wybór Ról + Gotowość)
+         */
+
+        const TOPIC_PREFIX = 'edimod-hangman-2026/rooms/';
+        const MQTT_BROKERS = [
+            'wss://broker.emqx.io:8084/mqtt',
+            'wss://broker.hivemq.com:8884/mqtt'
+        ];
+        const ALLOWED_SAFE_CHAT = ['Hej', 'Siema', 'Nie', 'Tak', 'GG', 'xd', 'muszę kończyć'];
+
+        let mqttClient = null;
+        let mqttConnected = false;
+        let activeBrokerIndex = 0;
+
+        let bc = null;
+        let transportMode = null;
+        const clientId = 'edimod_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+
+        let roomCode = '';
+        let opponentClientId = '';
+        let opponentName = '';
+        let isPaired = false;
+
+        let joinPingInterval = null;
+        let joinTimeoutTimer = null;
+        let heartbeatInterval = null;
+
+        // Stan ról i gotowości
+        let myRole = null; // 'zgadujacy' | 'wymyslajacy' | null
+        let myReady = false;
+        let opponentRole = null;
+        let opponentReady = false;
+
+        // Stan gry Wisielec
+        let secretWord = '';
+        let guessedLetters = [];
+        let mistakes = 0;
+        const MAX_MISTAKES = 6;
+        let gameOver = false;
+
+        // DOM Elements
+        const myNameInput = document.getElementById('my-name-input');
+        const opponentNameBadge = document.getElementById('opponent-name-badge');
+        const opponentNameText = document.getElementById('opponent-name-text');
+        const toastBanner = document.getElementById('toast-banner');
+        const toastMessage = document.getElementById('toast-message');
+
+        const screenStart = document.getElementById('screen-start');
+        const screenCodeOnly = document.getElementById('screen-code-only');
+        const screenRoles = document.getElementById('screen-roles');
+        const screenGame = document.getElementById('screen-game');
+
+        const joinCodeInput = document.getElementById('join-code-input');
+        const btnCreateCode = document.getElementById('btn-create-code');
+        const joinButtonWrapper = document.getElementById('join-button-wrapper');
+        const btnJoinGame = document.getElementById('btn-join-game');
+
+        const generatedCodeDisplay = document.getElementById('generated-code-display');
+        const hostStatusHint = document.getElementById('host-status-hint');
+
+        const cardRoleZgadujacy = document.getElementById('card-role-zgadujacy');
+        const cardRoleWymyslajacy = document.getElementById('card-role-wymyslajacy');
+        const btnSelectZgadujacy = document.getElementById('btn-select-zgadujacy');
+        const btnSelectWymyslajacy = document.getElementById('btn-select-wymyslajacy');
+        const readyPanel = document.getElementById('ready-panel');
+        const roleStatusText = document.getElementById('role-status-text');
+        const btnCancelRole = document.getElementById('btn-cancel-role');
+        const btnSetReady = document.getElementById('btn-set-ready');
+
+        const gameRoleBadge = document.getElementById('game-role-badge');
+        const viewWymyslajacy = document.getElementById('view-wymyslajacy');
+        const viewZgadujacy = document.getElementById('view-zgadujacy');
+        const secretWordInput = document.getElementById('secret-word-input');
+        const btnSubmitWord = document.getElementById('btn-submit-word');
+        const wStatusBox = document.getElementById('w-status-box');
+        const wordDisplay = document.getElementById('word-display');
+        const keyboardContainer = document.getElementById('keyboard-container');
+        const mistakesCounter = document.getElementById('mistakes-counter');
+
+        const gameOverPanel = document.getElementById('game-over-panel');
+        const gameOverTitle = document.getElementById('game-over-title');
+        const gameOverSubtitle = document.getElementById('game-over-subtitle');
+        const btnPlayAgain = document.getElementById('btn-play-again');
+
+        const safeChatMessages = document.getElementById('safe-chat-messages');
+        const safeChatButtons = document.querySelectorAll('.safe-chat-btn');
+
+        // --- TRANSPORT ---
+        function isTransportOpen() {
+            if (!isPaired) return false;
+            if (transportMode === 'local') return true;
+            return Boolean(mqttClient && mqttConnected);
+        }
+
+        function publishRoomPacket(payload, forceMode = null) {
+            const mode = forceMode || transportMode;
+            const packet = {
+                sender: clientId,
+                to: opponentClientId || null,
+                room: roomCode,
+                payload: payload,
+                ts: Date.now(),
+                nonce: Math.random()
+            };
+
+            if (mode === 'local' || !mode) {
+                if (bc) { try { bc.postMessage(packet); } catch (e) {} }
+                try { localStorage.setItem('hangman_msg_' + roomCode, JSON.stringify(packet)); } catch (e) {}
+            }
+
+            if ((mode === 'mqtt' || !mode) && mqttClient && mqttConnected && roomCode) {
+                try { mqttClient.publish(TOPIC_PREFIX + roomCode, JSON.stringify(packet), { qos: 1 }); } catch (e) {}
+            }
+        }
+
+        function cleanupConnections() {
+            clearInterval(joinPingInterval);
+            clearTimeout(joinTimeoutTimer);
+            clearInterval(heartbeatInterval);
+
+            if (bc) { try { bc.close(); } catch (e) {} bc = null; }
+            if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+            mqttConnected = false;
+            isPaired = false;
+            opponentClientId = '';
+        }
+
+        let toastTimeout = null;
+        function showToast(msg, isError = true) {
+            toastMessage.textContent = msg;
+            toastBanner.className = `fixed top-16 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw] ${isError ? 'bg-red-600' : 'bg-emerald-600'}`;
+            toastBanner.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { toastBanner.classList.add('hidden'); }, 3800);
+        }
+
+        function updateOpponentNameUI() {
+            const trimmed = (opponentName || '').trim();
+            if (isPaired && trimmed.length > 0) {
+                opponentNameText.textContent = trimmed;
+                opponentNameBadge.classList.remove('hidden');
+            } else {
+                opponentNameBadge.classList.add('hidden');
+                opponentNameText.textContent = '';
+            }
+        }
+
+        function sendMyName() {
+            if (isTransportOpen()) publishRoomPacket({ type: 'NAME_UPDATE', name: myNameInput.value.trim() });
+        }
+        myNameInput.addEventListener('input', () => { sendMyName(); });
+
+        // --- SAFE CHAT ---
+        function appendSafeChatMessage(phrase, isMine) {
+            if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+            const placeholder = safeChatMessages.querySelector('.text-center');
+            if (placeholder) placeholder.remove();
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex flex-col ${isMine ? 'items-end' : 'items-start'} fade-in`;
+
+            const senderLabel = document.createElement('span');
+            senderLabel.className = 'text-[10px] font-semibold text-gray-400 mb-0.5 px-1';
+            senderLabel.textContent = isMine ? 'Ty' : (opponentName.trim() || 'Przeciwnik');
+
+            const bubble = document.createElement('div');
+            bubble.className = isMine
+                ? 'bg-amber-700 text-white font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-br-sm shadow-sm'
+                : 'bg-white text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-bl-sm border border-gray-200 shadow-sm';
+            bubble.textContent = phrase;
+
+            wrapper.appendChild(senderLabel);
+            wrapper.appendChild(bubble);
+            safeChatMessages.appendChild(wrapper);
+            safeChatMessages.scrollTop = safeChatMessages.scrollHeight;
+        }
+
+        let chatCooldown = false;
+        safeChatButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (chatCooldown || !isTransportOpen()) return;
+                const phrase = btn.getAttribute('data-phrase');
+                if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+
+                appendSafeChatMessage(phrase, true);
+                publishRoomPacket({ type: 'SAFE_CHAT', phrase: phrase });
+                chatCooldown = true;
+                setTimeout(() => { chatCooldown = false; }, 700);
+            });
+        });
+
+        function showScreen(screenName) {
+            screenStart.classList.add('hidden');
+            screenCodeOnly.classList.add('hidden');
+            screenRoles.classList.add('hidden');
+            screenGame.classList.add('hidden');
+
+            if (screenName === 'start') screenStart.classList.remove('hidden');
+            else if (screenName === 'code') { screenCodeOnly.classList.remove('hidden'); screenCodeOnly.classList.add('flex'); }
+            else if (screenName === 'roles') { screenRoles.classList.remove('hidden'); screenRoles.classList.add('flex'); }
+            else if (screenName === 'game') { screenGame.classList.remove('hidden'); screenGame.classList.add('flex'); }
+        }
+
+        joinCodeInput.addEventListener('input', () => {
+            if (joinCodeInput.value.trim().length > 0) joinButtonWrapper.classList.remove('hidden');
+            else joinButtonWrapper.classList.add('hidden');
+        });
+        joinCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && joinCodeInput.value.trim().length > 0) btnJoinGame.click();
+        });
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            return code;
+        }
+
+        generatedCodeDisplay.addEventListener('click', () => {
+            if (!roomCode || generatedCodeDisplay.textContent === '...') return;
+            const tempInput = document.createElement('input');
+            tempInput.value = roomCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                hostStatusHint.textContent = 'Skopiowano kod do schowka!';
+                hostStatusHint.className = 'mt-3 text-xs text-emerald-600 font-semibold transition-opacity';
+                setTimeout(() => {
+                    if (!isPaired) {
+                        hostStatusHint.textContent = 'Gotowy – czekam na drugiego gracza';
+                        hostStatusHint.className = 'mt-3 text-xs text-gray-400 font-medium transition-opacity';
+                    }
+                }, 2000);
+            } catch (err) {}
+            document.body.removeChild(tempInput);
+        });
+
+        function setupLocalChannel(code) {
+            const channelName = 'hangman_room_' + code;
+            const storageMsgKey = 'hangman_msg_' + code;
+
+            if ('BroadcastChannel' in window) {
+                bc = new BroadcastChannel(channelName);
+                bc.onmessage = (event) => { handleIncomingPacket(event.data, 'local'); };
+            }
+
+            window.addEventListener('storage', (event) => {
+                if (event.key === storageMsgKey && event.newValue) {
+                    try {
+                        const packet = JSON.parse(event.newValue);
+                        handleIncomingPacket(packet, 'local');
+                    } catch (e) {}
+                }
+            });
+        }
+
+        function connectMqttToRoom(code, onBrokerReady, onBrokerAllFailed) {
+            if (typeof mqtt === 'undefined') {
+                onBrokerAllFailed('Biblioteka sieciowa nie została załadowana.');
+                return;
+            }
+
+            let brokerAttemptIndex = activeBrokerIndex;
+            let attemptsCount = 0;
+
+            const tryBroker = (idx) => {
+                if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+                mqttConnected = false;
+
+                const client = mqtt.connect(MQTT_BROKERS[idx], {
+                    clientId: clientId,
+                    clean: true,
+                    connectTimeout: 5500,
+                    reconnectPeriod: 2000,
+                    keepalive: 25
+                });
+                mqttClient = client;
+                let opened = false;
+
+                client.on('connect', () => {
+                    if (mqttClient !== client) return;
+                    opened = true;
+                    mqttConnected = true;
+                    activeBrokerIndex = idx;
+                    client.subscribe(TOPIC_PREFIX + code, { qos: 1 }, (err) => {
+                        if (err) { onBrokerAllFailed('Błąd subskrypcji pokoju.'); return; }
+                        if (onBrokerReady) onBrokerReady();
+                    });
+                });
+
+                client.on('message', (topic, messageBuffer) => {
+                    if (mqttClient !== client || topic !== TOPIC_PREFIX + code) return;
+                    try {
+                        const packet = JSON.parse(messageBuffer.toString());
+                        handleIncomingPacket(packet, 'mqtt');
+                    } catch (e) {}
+                });
+
+                client.on('error', () => {
+                    if (mqttClient !== client) return;
+                    if (!opened) {
+                        try { client.end(true); } catch (e) {}
+                        attemptsCount++;
+                        if (attemptsCount < MQTT_BROKERS.length) tryBroker((idx + 1) % MQTT_BROKERS.length);
+                        else if (!isPaired) onBrokerAllFailed('Brak połączenia z serwerem gry.');
+                    }
+                });
+            };
+
+            tryBroker(brokerAttemptIndex);
+        }
+
+        function handleIncomingPacket(packet, sourceMode) {
+            if (!packet || packet.sender === clientId || packet.room !== roomCode) return;
+            if (packet.to && packet.to !== clientId) return;
+
+            const data = packet.payload;
+            if (!data || typeof data !== 'object') return;
+
+            if (data.type === 'JOIN_REQUEST') {
+                if (!isPaired) {
+                    isPaired = true;
+                    transportMode = sourceMode;
+                    opponentClientId = packet.sender;
+                    opponentName = data.name || '';
+                    publishRoomPacket({
+                        type: 'WELCOME_SYNC',
+                        name: myNameInput.value.trim(),
+                        myRole: myRole,
+                        myReady: myReady
+                    }, sourceMode);
+                    startHeartbeat();
+                    updateOpponentNameUI();
+                    showScreen('roles');
+                    updateRolesUI();
+                }
+                return;
+            }
+
+            if (!isPaired && data.type === 'WELCOME_SYNC') {
+                isPaired = true;
+                transportMode = sourceMode;
+                opponentClientId = packet.sender;
+                opponentName = data.name || '';
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                resetJoinButton();
+                startHeartbeat();
+                sendMyName();
+                opponentRole = data.myRole;
+                opponentReady = data.myReady;
+                updateOpponentNameUI();
+                showScreen('roles');
+                updateRolesUI();
+                return;
+            }
+
+            if (isPaired && packet.sender === opponentClientId) {
+                handleGamePacket(data);
+            }
+        }
+
+        function startHeartbeat() {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (isTransportOpen()) publishRoomPacket({ type: 'PING' });
+            }, 5000);
+        }
+
+        btnCreateCode.addEventListener('click', () => {
+            btnCreateCode.disabled = true;
+            cleanupConnections();
+            roomCode = generateRoomCode();
+            generatedCodeDisplay.textContent = '...';
+            hostStatusHint.textContent = 'Rejestrowanie pokoju...';
+            showScreen('code');
+
+            setupLocalChannel(roomCode);
+            connectMqttToRoom(roomCode, () => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = 'Kliknij kod, aby skopiować';
+                btnCreateCode.disabled = false;
+            }, (errMsg) => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = errMsg;
+                hostStatusHint.className = 'mt-3 text-xs text-red-500 font-semibold transition-opacity';
+                showToast(errMsg);
+                btnCreateCode.disabled = false;
+            });
+        });
+
+        btnJoinGame.addEventListener('click', () => {
+            const rawCode = joinCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!rawCode) return;
+
+            cleanupConnections();
+            btnJoinGame.disabled = true;
+            btnJoinGame.textContent = 'Łączenie...';
+            roomCode = rawCode;
+
+            setupLocalChannel(roomCode);
+            const sendJoinRequest = () => {
+                if (!isPaired) publishRoomPacket({ type: 'JOIN_REQUEST', name: myNameInput.value.trim() });
+            };
+
+            sendJoinRequest();
+            connectMqttToRoom(roomCode, () => {
+                sendJoinRequest();
+                joinPingInterval = setInterval(() => {
+                    if (!isPaired) sendJoinRequest();
+                    else clearInterval(joinPingInterval);
+                }, 1200);
+            }, (errMsg) => {
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                showToast(errMsg);
+                resetJoinButton();
+            });
+
+            joinTimeoutTimer = setTimeout(() => {
+                clearInterval(joinPingInterval);
+                if (!isPaired) {
+                    showToast('Nie znaleziono pokoju o kodzie: ' + roomCode);
+                    resetJoinButton();
+                    cleanupConnections();
+                }
+            }, 12000);
+        });
+
+        function resetJoinButton() {
+            btnJoinGame.disabled = false;
+            btnJoinGame.textContent = 'Dołącz';
+        }
+
+        // --- ZARZĄDZANIE ROLAMI ---
+        btnSelectZgadujacy.addEventListener('click', () => {
+            if (opponentRole === 'zgadujacy') return;
+            myRole = 'zgadujacy';
+            myReady = false;
+            broadcastRoleState();
+            updateRolesUI();
+        });
+
+        btnSelectWymyslajacy.addEventListener('click', () => {
+            if (opponentRole === 'wymyslajacy') return;
+            myRole = 'wymyslajacy';
+            myReady = false;
+            broadcastRoleState();
+            updateRolesUI();
+        });
+
+        btnCancelRole.addEventListener('click', () => {
+            myRole = null;
+            myReady = false;
+            broadcastRoleState();
+            updateRolesUI();
+        });
+
+        btnSetReady.addEventListener('click', () => {
+            if (!myRole) return;
+            myReady = true;
+            broadcastRoleState();
+            updateRolesUI();
+            checkBothReady();
+        });
+
+        function broadcastRoleState() {
+            publishRoomPacket({
+                type: 'ROLE_UPDATE',
+                role: myRole,
+                ready: myReady
+            });
+        }
+
+        function updateRolesUI() {
+            // Blokowanie kart ról
+            if (myRole === 'zgadujacy') {
+                cardRoleZgadujacy.className = 'bg-amber-50 border-2 border-amber-600 rounded-2xl p-5 flex flex-col items-center justify-between shadow-md transition';
+                btnSelectZgadujacy.textContent = 'Twoja rola';
+                btnSelectZgadujacy.disabled = true;
+                btnSelectZgadujacy.className = 'w-full bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm cursor-default';
+
+                cardRoleWymyslajacy.className = 'bg-white border-2 border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-between shadow-sm transition';
+                btnSelectWymyslajacy.textContent = opponentRole === 'wymyslajacy' ? 'Zajęte przez gracza' : 'Wybierz tę rolę';
+                btnSelectWymyslajacy.disabled = opponentRole === 'wymyslajacy';
+                btnSelectWymyslajacy.className = `w-full font-bold py-2.5 px-4 rounded-xl text-sm transition ${opponentRole === 'wymyslajacy' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-amber-600 hover:text-white cursor-pointer'}`;
+            } else if (myRole === 'wymyslajacy') {
+                cardRoleWymyslajacy.className = 'bg-amber-50 border-2 border-amber-600 rounded-2xl p-5 flex flex-col items-center justify-between shadow-md transition';
+                btnSelectWymyslajacy.textContent = 'Twoja rola';
+                btnSelectWymyslajacy.disabled = true;
+                btnSelectWymyslajacy.className = 'w-full bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-sm cursor-default';
+
+                cardRoleZgadujacy.className = 'bg-white border-2 border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-between shadow-sm transition';
+                btnSelectZgadujacy.textContent = opponentRole === 'zgadujacy' ? 'Zajęte przez gracza' : 'Wybierz tę rolę';
+                btnSelectZgadujacy.disabled = opponentRole === 'zgadujacy';
+                btnSelectZgadujacy.className = `w-full font-bold py-2.5 px-4 rounded-xl text-sm transition ${opponentRole === 'zgadujacy' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-amber-600 hover:text-white cursor-pointer'}`;
+            } else {
+                cardRoleZgadujacy.className = 'bg-white border-2 border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-between shadow-sm transition';
+                btnSelectZgadujacy.textContent = opponentRole === 'zgadujacy' ? 'Zajęte przez gracza' : 'Wybierz tę rolę';
+                btnSelectZgadujacy.disabled = opponentRole === 'zgadujacy';
+                btnSelectZgadujacy.className = `w-full font-bold py-2.5 px-4 rounded-xl text-sm transition ${opponentRole === 'zgadujacy' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-amber-600 hover:text-white cursor-pointer'}`;
+
+                cardRoleWymyslajacy.className = 'bg-white border-2 border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-between shadow-sm transition';
+                btnSelectWymyslajacy.textContent = opponentRole === 'wymyslajacy' ? 'Zajęte przez gracza' : 'Wybierz tę rolę';
+                btnSelectWymyslajacy.disabled = opponentRole === 'wymyslajacy';
+                btnSelectWymyslajacy.className = `w-full font-bold py-2.5 px-4 rounded-xl text-sm transition ${opponentRole === 'wymyslajacy' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 hover:bg-amber-600 hover:text-white cursor-pointer'}`;
+            }
+
+            if (myRole !== null) {
+                readyPanel.classList.remove('hidden');
+                if (myReady) {
+                    roleStatusText.textContent = opponentReady ? 'Obaj gotowi! Uruchamianie gry...' : 'Czekam, aż przeciwnik kliknie Gotów...';
+                    btnSetReady.disabled = true;
+                    btnSetReady.className = 'flex-1 bg-gray-400 font-bold py-2.5 px-4 rounded-xl text-white text-sm cursor-default';
+                    btnCancelRole.disabled = true;
+                } else {
+                    roleStatusText.textContent = 'Masz wybraną rolę. Możesz ją anulować lub potwierdzić.';
+                    btnSetReady.disabled = false;
+                    btnSetReady.className = 'flex-1 bg-emerald-600 hover:bg-emerald-700 font-bold py-2.5 px-4 rounded-xl text-white text-sm transition cursor-pointer';
+                    btnCancelRole.disabled = false;
+                }
+            } else {
+                readyPanel.classList.add('hidden');
+            }
+        }
+
+        function checkBothReady() {
+            if (myReady && opponentReady && myRole && opponentRole && myRole !== opponentRole) {
+                // Start gry!
+                initGameSession();
+            }
+        }
+
+        function handleGamePacket(data) {
+            switch (data.type) {
+                case 'NAME_UPDATE':
+                    opponentName = data.name || '';
+                    updateOpponentNameUI();
+                    break;
+                case 'SAFE_CHAT':
+                    if (typeof data.phrase === 'string') appendSafeChatMessage(data.phrase, false);
+                    break;
+                case 'ROLE_UPDATE':
+                    opponentRole = data.role;
+                    opponentReady = data.ready;
+                    updateRolesUI();
+                    checkBothReady();
+                    break;
+                case 'START_GAME':
+                    secretWord = data.word;
+                    initGameSession(false);
+                    break;
+                case 'GUESS_LETTER':
+                    if (!guessedLetters.includes(data.letter)) {
+                        guessedLetters.push(data.letter);
+                        if (!secretWord.includes(data.letter)) {
+                            mistakes++;
+                        }
+                    }
+                    updateGameUI();
+                    checkGameEnd();
+                    break;
+                case 'RESTART':
+                    showScreen('roles');
+                    myRole = null;
+                    myReady = false;
+                    opponentRole = null;
+                    opponentReady = false;
+                    updateRolesUI();
+                    break;
+            }
+        }
+
+        // --- ROZPOCZĘCIE ROZGRYWKI ---
+        function initGameSession(isInitiator = true) {
+            guessedLetters = [];
+            mistakes = 0;
+            gameOver = false;
+            gameOverPanel.classList.add('hidden');
+
+            gameRoleBadge.textContent = 'Twoja rola: ' + (myRole === 'wymyslajacy' ? '💡 Wymyślający' : '🕵️‍♂️ Zgadujący');
+            showScreen('game');
+
+            if (myRole === 'wymyslajacy') {
+                viewWymyslajacy.classList.remove('hidden');
+                viewZgadujacy.classList.add('hidden');
+                secretWordInput.value = '';
+                wStatusBox.textContent = 'Wpisz tajne słowo i kliknij "Ustaw".';
+            } else {
+                viewWymyslajacy.classList.add('hidden');
+                viewZgadujacy.classList.remove('hidden');
+                renderWordDisplay();
+                renderKeyboard();
+            }
+            updateHangmanDrawing();
+        }
+
+        // Wymyślający zatwierdza słowo
+        btnSubmitWord.addEventListener('click', () => {
+            const word = secretWordInput.value.trim().toUpperCase().replace(/[^A-ZĄĆĘŁŃÓŚŹŻ]/g, '');
+            if (word.length < 2) {
+                showToast('Słowo musi mieć co najmniej 2 litery!');
+                return;
+            }
+            secretWord = word;
+            viewWymyslajacy.classList.add('hidden');
+            viewZgadujacy.classList.remove('hidden');
+            // Zgadującym staje się przeciwnik, wymyślający też widzi planszę (jako obserwator)
+            renderWordDisplay();
+            renderKeyboard();
+            wStatusBox.textContent = 'Słowo ustawione! Obserwujesz ruchy zgadującego.';
+
+            publishRoomPacket({
+                type: 'START_GAME',
+                word: secretWord
+            });
+        });
+
+        // --- LOGIKA WISIELECA ---
+        const POLISH_ALPHABET = ['A', 'Ą', 'B', 'C', 'Ć', 'D', 'E', 'Ę', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'Ł', 'M', 'N', 'Ń', 'O', 'Ó', 'P', 'R', 'S', 'Ś', 'T', 'U', 'W', 'Y', 'Z', 'Ź', 'Ż'];
+
+        function renderKeyboard() {
+            keyboardContainer.innerHTML = '';
+            POLISH_ALPHABET.forEach(letter => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-9 h-10 bg-white border-2 border-gray-200 hover:border-amber-600 rounded-xl font-bold text-sm text-gray-800 shadow-sm transition active:scale-95 cursor-pointer';
+                btn.textContent = letter;
+
+                if (guessedLetters.includes(letter)) {
+                    btn.disabled = true;
+                    btn.className = 'w-9 h-10 bg-gray-100 border-2 border-gray-200 rounded-xl font-bold text-sm text-gray-400 cursor-not-allowed';
+                }
+
+                btn.addEventListener('click', () => {
+                    if (myRole !== 'zgadujacy' || gameOver) return;
+                    handleLetterGuess(letter);
+                });
+
+                keyboardContainer.appendChild(btn);
+            });
+        }
+
+        function handleLetterGuess(letter) {
+            if (guessedLetters.includes(letter)) return;
+            guessedLetters.push(letter);
+
+            if (!secretWord.includes(letter)) {
+                mistakes++;
+            }
+
+            renderWordDisplay();
+            renderKeyboard();
+            updateHangmanDrawing();
+            checkGameEnd();
+
+            publishRoomPacket({
+                type: 'GUESS_LETTER',
+                letter: letter
+            });
+        }
+
+        function renderWordDisplay() {
+            if (!secretWord) {
+                wordDisplay.textContent = '_ _ _';
+                return;
+            }
+            let displayed = '';
+            for (let i = 0; i < secretWord.length; i++) {
+                const l = secretWord[i];
+                displayed += guessedLetters.includes(l) ? l + ' ' : '_ ';
+            }
+            wordDisplay.textContent = displayed.trim();
+        }
+
+        function updateHangmanDrawing() {
+            document.getElementById('part-head').classList.toggle('hidden', mistakes < 1);
+            document.getElementById('part-body').classList.toggle('hidden', mistakes < 2);
+            document.getElementById('part-left-arm').classList.toggle('hidden', mistakes < 3);
+            document.getElementById('part-right-arm').classList.toggle('hidden', mistakes < 4);
+            document.getElementById('part-left-leg').classList.toggle('hidden', mistakes < 5);
+            document.getElementById('part-right-leg').classList.toggle('hidden', mistakes < 6);
+            mistakesCounter.textContent = `Błędy: ${mistakes} / ${MAX_MISTAKES}`;
+        }
+
+        function checkGameEnd() {
+            if (!secretWord) return;
+            const won = secretWord.split('').every(l => guessedLetters.includes(l));
+            const lost = mistakes >= MAX_MISTAKES;
+
+            if (won || lost) {
+                gameOver = true;
+                showGameOver(won);
+            }
+        }
+
+        function showGameOver(won) {
+            gameOverPanel.classList.remove('hidden');
+            if (won) {
+                gameOverTitle.textContent = 'Wygrana! 🎉';
+                gameOverSubtitle.textContent = `Odgadnięto słowo: ${secretWord}`;
+            } else {
+                gameOverTitle.textContent = 'Przegrana 💀';
+                gameOverSubtitle.textContent = `Tajne słowo to było: ${secretWord}`;
+            }
+        }
+
+        btnPlayAgain.addEventListener('click', () => {
+            if (!isTransportOpen()) {
+                showToast('Brak połączenia z przeciwnikiem.');
+                return;
+            }
+            publishRoomPacket({ type: 'RESTART' });
+            showScreen('roles');
+            myRole = null;
+            myReady = false;
+            opponentRole = null;
+            opponentReady = false;
+            updateRolesUI();
+        });
+    </script>
+</body>
+  </html>
