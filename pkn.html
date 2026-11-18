@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papier Kamień Nożyce Online</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MQTT.js (WSS na porcie 443 - działa na GitHub Pages, LTE/5G oraz w sieciach szkolnych) -->
+    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+    <!-- Czcionka Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Animacja pojawiania się */
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Wybory w grze */
+        .choice-card {
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .choice-card:hover:not(:disabled) {
+            transform: translateY(-5px) scale(1.03);
+        }
+        .choice-card.selected {
+            ring: 4px;
+            ring-color: #d97706;
+            background-color: #fef3c7;
+            border-color: #d97706;
+            box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- LEWY GÓRNY RÓG: Nazwa konta oraz status "Grasz z [NAZWA]" -->
+    <header class="fixed top-0 left-0 z-40 p-3 sm:p-4 flex flex-wrap items-center gap-3 max-w-full">
+        <input
+            type="text"
+            id="my-name-input"
+            maxlength="24"
+            placeholder="Twoja nazwa konta"
+            autocomplete="off"
+            class="bg-white/95 backdrop-blur border border-gray-300 text-gray-800 text-sm sm:text-base font-medium rounded-xl px-3.5 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-amber-600 w-44 sm:w-56 transition"
+        />
+        <!-- Wyświetlane TYLKO gdy przeciwnik jest połączony i wpisał niepustą nazwę -->
+        <div id="opponent-name-badge" class="hidden bg-amber-900 text-amber-50 text-sm sm:text-base font-semibold px-3.5 py-2 rounded-xl shadow-sm fade-in">
+            Grasz z <span id="opponent-name-text" class="font-bold underline decoration-amber-400"></span>
+        </div>
+    </header>
+
+    <!-- Komunikat błędu / powiadomienie (zamiast alert()) -->
+    <div id="toast-banner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw]">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- GŁÓWNA PRZESTRZEŃ ROBOCZA -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 pt-20 pb-12 w-full">
+
+        <!-- EKRAN 1: EKRAN STARTOWY (Logo + PKN Online + Wpisz kod | Albo | Stwórz Kod) -->
+        <section id="screen-start" class="w-full max-w-xl flex flex-col items-center justify-center fade-in">
+
+            <!-- LOGO / IKONA -->
+            <div class="flex items-center justify-center gap-4 sm:gap-5 mb-8 select-none">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-amber-600 text-white border-2 border-amber-700 rounded-2xl shadow-md flex items-center justify-center text-3xl sm:text-4xl font-black">
+                    ✊
+                </div>
+                <div class="flex flex-col leading-none text-left">
+                    <span class="text-3xl sm:text-4xl font-black tracking-tight text-gray-900">
+                        Papier Kamień
+                    </span>
+                    <span class="text-2xl sm:text-3xl font-extrabold tracking-wide text-amber-600 mt-1">
+                        Nożyce Online
+                    </span>
+                </div>
+            </div>
+
+            <!-- Rząd: Wpisz kod | Albo | Stwórz Kod -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full">
+                <!-- Pole: Wpisz kod -->
+                <input
+                    type="text"
+                    id="join-code-input"
+                    maxlength="10"
+                    placeholder="Wpisz kod"
+                    autocomplete="off"
+                    class="w-full sm:w-48 text-center uppercase tracking-widest font-bold text-lg bg-white border-2 border-gray-300 text-gray-800 rounded-xl px-4 py-3 shadow-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 transition"
+                />
+
+                <!-- Separator: Albo -->
+                <span class="text-gray-500 font-semibold text-base sm:text-lg px-1 select-none">
+                    Albo
+                </span>
+
+                <!-- Guzik: Stwórz Kod -->
+                <button
+                    id="btn-create-code"
+                    type="button"
+                    class="w-full sm:w-auto bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold text-lg px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Stwórz Kod
+                </button>
+            </div>
+
+            <!-- Dynamiczny guzik "Dołącz" pojawiający się na dole po wpisaniu czegokolwiek w pole "Wpisz kod" -->
+            <div id="join-button-wrapper" class="hidden mt-5 w-full sm:w-auto flex justify-center fade-in">
+                <button
+                    id="btn-join-game"
+                    type="button"
+                    class="w-full sm:w-56 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-lg px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Dołącz
+                </button>
+            </div>
+        </section>
+
+        <!-- EKRAN 2: TYLKO SAM WYGENEROWANY KOD (gdy kliknięto "Stwórz Kod", czekanie na 2. urządzenie) -->
+        <section id="screen-code-only" class="hidden flex-col items-center justify-center text-center fade-in">
+            <div
+                id="generated-code-display"
+                title="Kliknij, aby skopiować kod"
+                class="text-6xl sm:text-8xl font-extrabold tracking-[0.18em] text-gray-900 bg-white border-2 border-gray-200 px-8 py-6 rounded-2xl shadow-md cursor-pointer hover:border-amber-500 active:scale-95 transition select-all"
+            >
+                ...
+            </div>
+            <p id="host-status-hint" class="mt-3 text-xs text-gray-400 font-medium transition-opacity">
+                Rejestrowanie pokoju...
+            </p>
+        </section>
+
+        <!-- EKRAN 3: ARENA GRY + SAFE CHAT PO PRAWEJ STRONIE -->
+        <section id="screen-game" class="hidden flex-col lg:flex-row items-center lg:items-start justify-center gap-6 w-full max-w-5xl fade-in">
+
+            <!-- LEWA / ŚRODKOWA KOLUMNA: Wynik meczu + Panel wyboru ruchu + Koniec gry -->
+            <div class="flex flex-col items-center justify-center w-full max-w-xl">
+                
+                <!-- Tablica Wyników (Punkty do 3) -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm w-full mb-5 flex items-center justify-around">
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs font-bold uppercase tracking-wider text-gray-400">Ty</span>
+                        <span id="my-score" class="text-3xl font-black text-amber-700">0</span>
+                    </div>
+                    <div class="text-2xl font-black text-gray-300">:</div>
+                    <div class="flex flex-col items-center">
+                        <span id="opponent-score-label" class="text-xs font-bold uppercase tracking-wider text-gray-400">Przeciwnik</span>
+                        <span id="opponent-score" class="text-3xl font-black text-gray-700">0</span>
+                    </div>
+                </div>
+
+                <!-- Status rundy / Komunikat -->
+                <div id="round-status-box" class="w-full bg-amber-50 border border-amber-200 text-amber-900 font-bold text-center py-3 px-4 rounded-2xl shadow-sm mb-5 text-base sm:text-lg transition-all">
+                    Wybierz swój ruch! (Do 3 wygranych)
+                </div>
+
+                <!-- Panel wyników pojedynczej rundy (gdy obaj wybiorą) -->
+                <div id="reveal-panel" class="hidden w-full bg-white border border-gray-200 rounded-2xl p-5 shadow-md mb-5 text-center fade-in">
+                    <div class="flex items-center justify-around mb-3">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-400 mb-1">Twój wybór</span>
+                            <div id="reveal-my-choice" class="text-4xl">✊</div>
+                        </div>
+                        <span class="text-lg font-bold text-gray-300">VS</span>
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-400 mb-1">Przeciwnik</span>
+                            <div id="reveal-opponent-choice" class="text-4xl">✋</div>
+                        </div>
+                    </div>
+                    <div id="round-winner-text" class="text-xl font-black text-gray-900 mt-2">Remis w rundzie!</div>
+                </div>
+
+                <!-- Przyciski wyboru: Papier, Kamień, Nożyce -->
+                <div id="choices-container" class="grid grid-cols-3 gap-3 w-full">
+                    <button type="button" data-choice="kamien" class="choice-card bg-white border-2 border-gray-200 hover:border-amber-600 rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer active:scale-95">
+                        <span class="text-4xl sm:text-5xl mb-2">✊</span>
+                        <span class="font-bold text-xs sm:text-sm text-gray-700">Kamień</span>
+                    </button>
+                    <button type="button" data-choice="papier" class="choice-card bg-white border-2 border-gray-200 hover:border-amber-600 rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer active:scale-95">
+                        <span class="text-4xl sm:text-5xl mb-2">✋</span>
+                        <span class="font-bold text-xs sm:text-sm text-gray-700">Papier</span>
+                    </button>
+                    <button type="button" data-choice="nozyce" class="choice-card bg-white border-2 border-gray-200 hover:border-amber-600 rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm cursor-pointer active:scale-95">
+                        <span class="text-4xl sm:text-5xl mb-2">✌️</span>
+                        <span class="font-bold text-xs sm:text-sm text-gray-700">Nożyce</span>
+                    </button>
+                </div>
+
+                <!-- Panel końca całego meczu -->
+                <div id="game-over-panel" class="hidden mt-5 bg-white border border-gray-200 rounded-2xl p-5 shadow-lg text-center max-w-sm w-full fade-in">
+                    <h2 id="game-over-title" class="text-2xl font-extrabold text-gray-900 mb-1">Koniec meczu!</h2>
+                    <p id="game-over-subtitle" class="text-sm text-gray-600 mb-4"></p>
+                    <button
+                        id="btn-play-again"
+                        type="button"
+                        class="w-full bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl shadow transition cursor-pointer"
+                    >
+                        Zagraj ponownie
+                    </button>
+                </div>
+            </div>
+
+            <!-- PRAWA KOLUMNA: SAFE CHAT -->
+            <aside class="w-full max-w-md lg:w-72 bg-white border border-gray-200 rounded-2xl shadow-md p-4 flex flex-col lg:mt-12">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-gray-700">Safe Chat</h3>
+                    </div>
+                    <span class="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">Tylko gotowe słowa</span>
+                </div>
+
+                <!-- Historia wysłanych wiadomości Safe Chat -->
+                <div id="safe-chat-messages" class="h-36 lg:h-52 overflow-y-auto flex flex-col gap-2 pr-1 mb-3 text-sm bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                    <div class="text-xs text-gray-400 text-center my-auto select-none">
+                        Kliknij słowo poniżej, aby wysłać
+                    </div>
+                </div>
+
+                <!-- Gotowe przyciski fraz Safe Chat -->
+                <div id="safe-chat-buttons" class="flex flex-wrap gap-1.5">
+                    <button type="button" data-phrase="Hej" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Hej</button>
+                    <button type="button" data-phrase="Siema" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Siema</button>
+                    <button type="button" data-phrase="Nie" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Nie</button>
+                    <button type="button" data-phrase="Tak" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Tak</button>
+                    <button type="button" data-phrase="GG" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">GG</button>
+                    <button type="button" data-phrase="xd" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">xd</button>
+                    <button type="button" data-phrase="muszę kończyć" class="safe-chat-btn bg-gray-100 hover:bg-red-100 hover:text-red-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">muszę kończyć</button>
+                </div>
+            </aside>
+
+        </section>
+
+    </main>
+
+    <!-- STOPKA NA DOLE MAŁYM DRUKIEM -->
+    <footer class="w-full text-center py-3 text-xs text-gray-400 font-medium select-none">
+        created by edimod
+    </footer>
+
+    <script>
+        /**
+         * PAPIER KAMIEŃ NOŻYCE ONLINE MULTIPLAYER (MQTT over WSS + BroadcastChannel)
+         */
+
+        const TOPIC_PREFIX = 'edimod-pkn-2026/rooms/';
+        const MQTT_BROKERS = [
+            'wss://broker.emqx.io:8084/mqtt',
+            'wss://broker.hivemq.com:8884/mqtt'
+        ];
+        const ALLOWED_SAFE_CHAT = ['Hej', 'Siema', 'Nie', 'Tak', 'GG', 'xd', 'muszę kończyć'];
+
+        let mqttClient = null;
+        let mqttConnected = false;
+        let activeBrokerIndex = 0;
+
+        let bc = null;
+        let transportMode = null;
+        const clientId = 'edimod_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+
+        let myRole = null; // 'host' lub 'guest'
+        let roomCode = '';
+        let opponentClientId = '';
+        let opponentName = '';
+        let isPaired = false;
+
+        let joinPingInterval = null;
+        let joinTimeoutTimer = null;
+        let heartbeatInterval = null;
+
+        // Stan gry PKN
+        let myScore = 0;
+        let opponentScore = 0;
+        let myChoice = null;
+        let opponentChoice = null;
+        let roundResolved = false;
+        let gameOver = false;
+
+        const CHOICE_EMOJIS = {
+            'kamien': '✊',
+            'papier': '✋',
+            'nozyce': '✌️'
+        };
+
+        // DOM Elements
+        const myNameInput = document.getElementById('my-name-input');
+        const opponentNameBadge = document.getElementById('opponent-name-badge');
+        const opponentNameText = document.getElementById('opponent-name-text');
+        const toastBanner = document.getElementById('toast-banner');
+        const toastMessage = document.getElementById('toast-message');
+
+        const screenStart = document.getElementById('screen-start');
+        const screenCodeOnly = document.getElementById('screen-code-only');
+        const screenGame = document.getElementById('screen-game');
+
+        const joinCodeInput = document.getElementById('join-code-input');
+        const btnCreateCode = document.getElementById('btn-create-code');
+        const joinButtonWrapper = document.getElementById('join-button-wrapper');
+        const btnJoinGame = document.getElementById('btn-join-game');
+
+        const generatedCodeDisplay = document.getElementById('generated-code-display');
+        const hostStatusHint = document.getElementById('host-status-hint');
+
+        const myScoreEl = document.getElementById('my-score');
+        const opponentScoreEl = document.getElementById('opponent-score');
+        const opponentScoreLabel = document.getElementById('opponent-score-label');
+        const roundStatusBox = document.getElementById('round-status-box');
+        const revealPanel = document.getElementById('reveal-panel');
+        const revealMyChoice = document.getElementById('reveal-my-choice');
+        const revealOpponentChoice = document.getElementById('reveal-opponent-choice');
+        const roundWinnerText = document.getElementById('round-winner-text');
+        const choiceButtons = document.querySelectorAll('.choice-card');
+
+        const gameOverPanel = document.getElementById('game-over-panel');
+        const gameOverTitle = document.getElementById('game-over-title');
+        const gameOverSubtitle = document.getElementById('game-over-subtitle');
+        const btnPlayAgain = document.getElementById('btn-play-again');
+
+        const safeChatMessages = document.getElementById('safe-chat-messages');
+        const safeChatButtons = document.querySelectorAll('.safe-chat-btn');
+
+        // --- TRANSPORT ---
+        function isTransportOpen() {
+            if (!isPaired) return false;
+            if (transportMode === 'local') return true;
+            return Boolean(mqttClient && mqttConnected);
+        }
+
+        function publishRoomPacket(payload, forceMode = null) {
+            const mode = forceMode || transportMode;
+            const packet = {
+                sender: clientId,
+                to: opponentClientId || null,
+                room: roomCode,
+                payload: payload,
+                ts: Date.now(),
+                nonce: Math.random()
+            };
+
+            if (mode === 'local' || !mode) {
+                if (bc) { try { bc.postMessage(packet); } catch (e) {} }
+                try { localStorage.setItem('pkn_msg_' + roomCode, JSON.stringify(packet)); } catch (e) {}
+            }
+
+            if ((mode === 'mqtt' || !mode) && mqttClient && mqttConnected && roomCode) {
+                try { mqttClient.publish(TOPIC_PREFIX + roomCode, JSON.stringify(packet), { qos: 1 }); } catch (e) {}
+            }
+        }
+
+        function cleanupConnections() {
+            clearInterval(joinPingInterval);
+            clearTimeout(joinTimeoutTimer);
+            clearInterval(heartbeatInterval);
+
+            if (bc) { try { bc.close(); } catch (e) {} bc = null; }
+            if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+            mqttConnected = false;
+            isPaired = false;
+            opponentClientId = '';
+        }
+
+        let toastTimeout = null;
+        function showToast(msg, isError = true) {
+            toastMessage.textContent = msg;
+            toastBanner.className = `fixed top-16 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw] ${isError ? 'bg-red-600' : 'bg-emerald-600'}`;
+            toastBanner.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { toastBanner.classList.add('hidden'); }, 3800);
+        }
+
+        function updateOpponentNameUI() {
+            const trimmed = (opponentName || '').trim();
+            if (isPaired && trimmed.length > 0) {
+                opponentNameText.textContent = trimmed;
+                opponentScoreLabel.textContent = trimmed;
+                opponentNameBadge.classList.remove('hidden');
+            } else {
+                opponentNameBadge.classList.add('hidden');
+                opponentScoreLabel.textContent = 'Przeciwnik';
+                opponentNameText.textContent = '';
+            }
+        }
+
+        function sendMyName() {
+            if (isTransportOpen()) {
+                publishRoomPacket({ type: 'NAME_UPDATE', name: myNameInput.value.trim() });
+            }
+        }
+        myNameInput.addEventListener('input', () => { sendMyName(); });
+
+        // --- SAFE CHAT ---
+        function appendSafeChatMessage(phrase, isMine) {
+            if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+            const placeholder = safeChatMessages.querySelector('.text-center');
+            if (placeholder) placeholder.remove();
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex flex-col ${isMine ? 'items-end' : 'items-start'} fade-in`;
+
+            const senderLabel = document.createElement('span');
+            senderLabel.className = 'text-[10px] font-semibold text-gray-400 mb-0.5 px-1';
+            senderLabel.textContent = isMine ? 'Ty' : (opponentName.trim() || 'Przeciwnik');
+
+            const bubble = document.createElement('div');
+            bubble.className = isMine
+                ? 'bg-amber-700 text-white font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-br-sm shadow-sm'
+                : 'bg-white text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-bl-sm border border-gray-200 shadow-sm';
+            bubble.textContent = phrase;
+
+            wrapper.appendChild(senderLabel);
+            wrapper.appendChild(bubble);
+            safeChatMessages.appendChild(wrapper);
+            safeChatMessages.scrollTop = safeChatMessages.scrollHeight;
+        }
+
+        let chatCooldown = false;
+        safeChatButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (chatCooldown || !isTransportOpen()) return;
+                const phrase = btn.getAttribute('data-phrase');
+                if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+
+                appendSafeChatMessage(phrase, true);
+                publishRoomPacket({ type: 'SAFE_CHAT', phrase: phrase });
+                chatCooldown = true;
+                setTimeout(() => { chatCooldown = false; }, 700);
+            });
+        });
+
+        function showScreen(screenName) {
+            screenStart.classList.add('hidden');
+            screenCodeOnly.classList.add('hidden');
+            screenGame.classList.add('hidden');
+
+            if (screenName === 'start') screenStart.classList.remove('hidden');
+            else if (screenName === 'code') { screenCodeOnly.classList.remove('hidden'); screenCodeOnly.classList.add('flex'); }
+            else if (screenName === 'game') { screenGame.classList.remove('hidden'); screenGame.classList.add('flex'); }
+        }
+
+        joinCodeInput.addEventListener('input', () => {
+            if (joinCodeInput.value.trim().length > 0) joinButtonWrapper.classList.remove('hidden');
+            else joinButtonWrapper.classList.add('hidden');
+        });
+        joinCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && joinCodeInput.value.trim().length > 0) btnJoinGame.click();
+        });
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            return code;
+        }
+
+        generatedCodeDisplay.addEventListener('click', () => {
+            if (!roomCode || generatedCodeDisplay.textContent === '...') return;
+            const tempInput = document.createElement('input');
+            tempInput.value = roomCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                hostStatusHint.textContent = 'Skopiowano kod do schowka!';
+                hostStatusHint.className = 'mt-3 text-xs text-emerald-600 font-semibold transition-opacity';
+                setTimeout(() => {
+                    if (!isPaired) {
+                        hostStatusHint.textContent = 'Gotowy – czekam na drugiego gracza';
+                        hostStatusHint.className = 'mt-3 text-xs text-gray-400 font-medium transition-opacity';
+                    }
+                }, 2000);
+            } catch (err) {}
+            document.body.removeChild(tempInput);
+        });
+
+        function setupLocalChannel(code) {
+            const channelName = 'pkn_room_' + code;
+            const storageMsgKey = 'pkn_msg_' + code;
+
+            if ('BroadcastChannel' in window) {
+                bc = new BroadcastChannel(channelName);
+                bc.onmessage = (event) => { handleIncomingPacket(event.data, 'local'); };
+            }
+
+            window.addEventListener('storage', (event) => {
+                if (event.key === storageMsgKey && event.newValue) {
+                    try {
+                        const packet = JSON.parse(event.newValue);
+                        handleIncomingPacket(packet, 'local');
+                    } catch (e) {}
+                }
+            });
+        }
+
+        function connectMqttToRoom(code, onBrokerReady, onBrokerAllFailed) {
+            if (typeof mqtt === 'undefined') {
+                onBrokerAllFailed('Biblioteka sieciowa nie została załadowana.');
+                return;
+            }
+
+            let brokerAttemptIndex = activeBrokerIndex;
+            let attemptsCount = 0;
+
+            const tryBroker = (idx) => {
+                if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+                mqttConnected = false;
+
+                const client = mqtt.connect(MQTT_BROKERS[idx], {
+                    clientId: clientId,
+                    clean: true,
+                    connectTimeout: 5500,
+                    reconnectPeriod: 2000,
+                    keepalive: 25
+                });
+                mqttClient = client;
+                let opened = false;
+
+                client.on('connect', () => {
+                    if (mqttClient !== client) return;
+                    opened = true;
+                    mqttConnected = true;
+                    activeBrokerIndex = idx;
+                    client.subscribe(TOPIC_PREFIX + code, { qos: 1 }, (err) => {
+                        if (err) { onBrokerAllFailed('Błąd subskrypcji pokoju.'); return; }
+                        if (onBrokerReady) onBrokerReady();
+                    });
+                });
+
+                client.on('message', (topic, messageBuffer) => {
+                    if (mqttClient !== client || topic !== TOPIC_PREFIX + code) return;
+                    try {
+                        const packet = JSON.parse(messageBuffer.toString());
+                        handleIncomingPacket(packet, 'mqtt');
+                    } catch (e) {}
+                });
+
+                client.on('error', () => {
+                    if (mqttClient !== client) return;
+                    if (!opened) {
+                        try { client.end(true); } catch (e) {}
+                        attemptsCount++;
+                        if (attemptsCount < MQTT_BROKERS.length) tryBroker((idx + 1) % MQTT_BROKERS.length);
+                        else if (!isPaired) onBrokerAllFailed('Brak połączenia z serwerem gry.');
+                    }
+                });
+            };
+
+            tryBroker(brokerAttemptIndex);
+        }
+
+        function handleIncomingPacket(packet, sourceMode) {
+            if (!packet || packet.sender === clientId || packet.room !== roomCode) return;
+            if (packet.to && packet.to !== clientId) return;
+
+            const data = packet.payload;
+            if (!data || typeof data !== 'object') return;
+
+            if (myRole === 'host' && data.type === 'JOIN_REQUEST') {
+                if (!isPaired) {
+                    isPaired = true;
+                    transportMode = sourceMode;
+                    opponentClientId = packet.sender;
+                    opponentName = data.name || '';
+                    initGame();
+                    publishRoomPacket({
+                        type: 'WELCOME_SYNC',
+                        myScore: opponentScore, // odwrotnie dla gościa
+                        opponentScore: myScore,
+                        name: myNameInput.value.trim()
+                    }, sourceMode);
+                    startHeartbeat();
+                    updateOpponentNameUI();
+                    startSyncedGameUI();
+                }
+                return;
+            }
+
+            if (myRole === 'guest' && !isPaired && data.type === 'WELCOME_SYNC') {
+                isPaired = true;
+                transportMode = sourceMode;
+                opponentClientId = packet.sender;
+                opponentName = data.name || '';
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                resetJoinButton();
+                startHeartbeat();
+                sendMyName();
+                
+                myScore = data.myScore;
+                opponentScore = data.opponentScore;
+                updateOpponentNameUI();
+                startSyncedGameUI();
+                return;
+            }
+
+            if (isPaired && packet.sender === opponentClientId) {
+                handleIncomingGameData(data);
+            }
+        }
+
+        function startHeartbeat() {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (isTransportOpen()) publishRoomPacket({ type: 'PING' });
+            }, 5000);
+        }
+
+        btnCreateCode.addEventListener('click', () => {
+            btnCreateCode.disabled = true;
+            cleanupConnections();
+            myRole = 'host';
+            roomCode = generateRoomCode();
+            generatedCodeDisplay.textContent = '...';
+            hostStatusHint.textContent = 'Rejestrowanie pokoju...';
+            showScreen('code');
+
+            setupLocalChannel(roomCode);
+            connectMqttToRoom(roomCode, () => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = 'Kliknij kod, aby skopiować';
+                btnCreateCode.disabled = false;
+            }, (errMsg) => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = errMsg;
+                hostStatusHint.className = 'mt-3 text-xs text-red-500 font-semibold transition-opacity';
+                showToast(errMsg);
+                btnCreateCode.disabled = false;
+            });
+        });
+
+        btnJoinGame.addEventListener('click', () => {
+            const rawCode = joinCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!rawCode) return;
+
+            cleanupConnections();
+            btnJoinGame.disabled = true;
+            btnJoinGame.textContent = 'Łączenie...';
+            myRole = 'guest';
+            roomCode = rawCode;
+
+            setupLocalChannel(roomCode);
+            const sendJoinRequest = () => {
+                if (!isPaired) publishRoomPacket({ type: 'JOIN_REQUEST', name: myNameInput.value.trim() });
+            };
+
+            sendJoinRequest();
+            connectMqttToRoom(roomCode, () => {
+                sendJoinRequest();
+                joinPingInterval = setInterval(() => {
+                    if (!isPaired) sendJoinRequest();
+                    else clearInterval(joinPingInterval);
+                }, 1200);
+            }, (errMsg) => {
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                showToast(errMsg);
+                resetJoinButton();
+            });
+
+            joinTimeoutTimer = setTimeout(() => {
+                clearInterval(joinPingInterval);
+                if (!isPaired) {
+                    showToast('Nie znaleziono pokoju o kodzie: ' + roomCode);
+                    resetJoinButton();
+                    cleanupConnections();
+                }
+            }, 12000);
+        });
+
+        function resetJoinButton() {
+            btnJoinGame.disabled = false;
+            btnJoinGame.textContent = 'Dołącz';
+        }
+
+        function handleIncomingGameData(data) {
+            if (!data || typeof data !== 'object') return;
+
+            switch (data.type) {
+                case 'NAME_UPDATE':
+                    opponentName = data.name || '';
+                    updateOpponentNameUI();
+                    break;
+                case 'SAFE_CHAT':
+                    if (typeof data.phrase === 'string') appendSafeChatMessage(data.phrase, false);
+                    break;
+                case 'CHOICE':
+                    opponentChoice = data.choice;
+                    checkRoundCompletion();
+                    break;
+                case 'RESTART':
+                    initGame();
+                    updateUI();
+                    showToast('Rozpoczęto nową grę!', false);
+                    break;
+            }
+        }
+
+        function initGame() {
+            myScore = 0;
+            opponentScore = 0;
+            myChoice = null;
+            opponentChoice = null;
+            roundResolved = false;
+            gameOver = false;
+        }
+
+        function startSyncedGameUI() {
+            initGame();
+            gameOverPanel.classList.add('hidden');
+            revealPanel.classList.add('hidden');
+            safeChatMessages.innerHTML = `<div class="text-xs text-gray-400 text-center my-auto select-none">Kliknij słowo poniżej, aby wysłać</div>`;
+            showScreen('game');
+            updateUI();
+        }
+
+        // --- LOGIKA ROZGRYWKI PKN ---
+        choiceButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (gameOver || roundResolved || myChoice !== null || !isPaired) return;
+                myChoice = btn.getAttribute('data-choice');
+
+                choiceButtons.forEach(b => {
+                    b.classList.remove('selected');
+                    if (b.getAttribute('data-choice') === myChoice) {
+                        b.classList.add('selected');
+                    }
+                });
+
+                roundStatusBox.textContent = 'Wybrano! Czekam na przeciwnika...';
+                roundStatusBox.className = 'w-full bg-blue-50 border border-blue-200 text-blue-900 font-bold text-center py-3 px-4 rounded-2xl shadow-sm mb-5 text-base sm:text-lg transition-all';
+
+                publishRoomPacket({ type: 'CHOICE', choice: myChoice });
+                checkRoundCompletion();
+            });
+        });
+
+        function checkRoundCompletion() {
+            if (myChoice !== null && opponentChoice !== null && !roundResolved) {
+                roundResolved = true;
+
+                revealMyChoice.textContent = CHOICE_EMOJIS[myChoice];
+                revealOpponentChoice.textContent = CHOICE_EMOJIS[opponentChoice];
+                revealPanel.classList.remove('hidden');
+
+                let resultText = '';
+                if (myChoice === opponentChoice) {
+                    resultText = 'Remis w tej rundzie!';
+                    roundWinnerText.textContent = resultText;
+                    roundWinnerText.className = 'text-xl font-black text-gray-700 mt-2';
+                } else if (
+                    (myChoice === 'kamien' && opponentChoice === 'nozyce') ||
+                    (myChoice === 'papier' && opponentChoice === 'kamien') ||
+                    (myChoice === 'nozyce' && opponentChoice === 'papier')
+                ) {
+                    myScore++;
+                    resultText = 'Wygrywasz tę rundę! 🎉';
+                    roundWinnerText.textContent = resultText;
+                    roundWinnerText.className = 'text-xl font-black text-emerald-600 mt-2';
+                } else {
+                    opponentScore++;
+                    resultText = 'Przeciwnik wygrywa rundę!';
+                    roundWinnerText.textContent = resultText;
+                    roundWinnerText.className = 'text-xl font-black text-red-600 mt-2';
+                }
+
+                updateUI();
+
+                if (myScore >= 3 || opponentScore >= 3) {
+                    gameOver = true;
+                    setTimeout(() => {
+                        showGameOver(myScore >= 3);
+                    }, 800);
+                } else {
+                    setTimeout(() => {
+                        myChoice = null;
+                        opponentChoice = null;
+                        roundResolved = false;
+                        revealPanel.classList.add('hidden');
+                        choiceButtons.forEach(b => b.classList.remove('selected'));
+                        roundStatusBox.textContent = 'Wybierz swój ruch! (Do 3 wygranych)';
+                        roundStatusBox.className = 'w-full bg-amber-50 border border-amber-200 text-amber-900 font-bold text-center py-3 px-4 rounded-2xl shadow-sm mb-5 text-base sm:text-lg transition-all';
+                    }, 2500);
+                }
+            }
+        }
+
+        function updateUI() {
+            myScoreEl.textContent = myScore;
+            opponentScoreEl.textContent = opponentScore;
+        }
+
+        function showGameOver(didIWin) {
+            gameOverPanel.classList.remove('hidden');
+            if (didIWin) {
+                gameOverTitle.textContent = 'Wygrałeś mecz! 🎉';
+                gameOverSubtitle.textContent = 'Gratulacje, pokonałeś przeciwnika!';
+            } else {
+                gameOverTitle.textContent = 'Przegrałeś mecz';
+                gameOverSubtitle.textContent = 'Przeciwnik okazał się lepszy.';
+            }
+        }
+
+        btnPlayAgain.addEventListener('click', () => {
+            if (!isTransportOpen()) {
+                showToast('Brak połączenia z przeciwnikiem.');
+                return;
+            }
+            initGame();
+            gameOverPanel.classList.add('hidden');
+            revealPanel.classList.add('hidden');
+            choiceButtons.forEach(b => b.classList.remove('selected'));
+            roundStatusBox.textContent = 'Wybierz swój ruch! (Do 3 wygranych)';
+            roundStatusBox.className = 'w-full bg-amber-50 border border-amber-200 text-amber-900 font-bold text-center py-3 px-4 rounded-2xl shadow-sm mb-5 text-base sm:text-lg transition-all';
+            updateUI();
+
+            publishRoomPacket({ type: 'RESTART' });
+        });
+    </script>
+</body>
+  </html>
