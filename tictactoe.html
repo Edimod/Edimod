@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kółko i Krzyżyk Online</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MQTT.js (WSS na porcie 443 - działa na GitHub Pages, LTE/5G oraz w sieciach szkolnych) -->
+    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+    <!-- Czcionka Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Stylizacja planszy 3x3 */
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: min(88vw, 68vh, 420px);
+            aspect-ratio: 1 / 1;
+        }
+
+        .cell {
+            background-color: white;
+            border: 3px solid #e5e7eb;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .cell:hover:not(.filled) {
+            border-color: #d97706;
+            background-color: #fffbeb;
+            transform: scale(1.03);
+        }
+
+        .cell.filled {
+            cursor: default;
+        }
+
+        .cell-x {
+            color: #dc2626; /* Czerwony dla X */
+        }
+
+        .cell-o {
+            color: #2563eb; /* Niebieski dla O */
+        }
+
+        /* Animacja pojawiania się */
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- LEWY GÓRNY RÓG: Nazwa konta oraz status "Grasz z [NAZWA]" -->
+    <header class="fixed top-0 left-0 z-40 p-3 sm:p-4 flex flex-wrap items-center gap-3 max-w-full">
+        <input
+            type="text"
+            id="my-name-input"
+            maxlength="24"
+            placeholder="Twoja nazwa konta"
+            autocomplete="off"
+            class="bg-white/95 backdrop-blur border border-gray-300 text-gray-800 text-sm sm:text-base font-medium rounded-xl px-3.5 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-amber-600 w-44 sm:w-56 transition"
+        />
+        <!-- Wyświetlane TYLKO gdy przeciwnik jest połączony i wpisał niepustą nazwę -->
+        <div id="opponent-name-badge" class="hidden bg-amber-900 text-amber-50 text-sm sm:text-base font-semibold px-3.5 py-2 rounded-xl shadow-sm fade-in">
+            Grasz z <span id="opponent-name-text" class="font-bold underline decoration-amber-400"></span>
+        </div>
+    </header>
+
+    <!-- Komunikat błędu / powiadomienie (zamiast alert()) -->
+    <div id="toast-banner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw]">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- GŁÓWNA PRZESTRZEŃ ROBOCZA -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 pt-20 pb-12 w-full">
+
+        <!-- EKRAN 1: EKRAN STARTOWY (Logo + Tytuł + Wpisz kod | Albo | Stwórz Kod) -->
+        <section id="screen-start" class="w-full max-w-xl flex flex-col items-center justify-center fade-in">
+
+            <!-- LOGO / IKONA -->
+            <div class="flex items-center justify-center gap-4 sm:gap-5 mb-8 select-none">
+                <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white border-2 border-gray-200 rounded-2xl shadow-md flex items-center justify-center text-3xl sm:text-4xl font-black">
+                    ❌
+                </div>
+                <div class="flex flex-col leading-none text-left">
+                    <span class="text-3xl sm:text-4xl font-black tracking-tight text-gray-900">
+                        Kółko i Krzyżyk
+                    </span>
+                    <span class="text-2xl sm:text-3xl font-extrabold tracking-wide text-amber-600 mt-1">
+                        Online
+                    </span>
+                </div>
+            </div>
+
+            <!-- Rząd: Wpisz kod | Albo | Stwórz Kod -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full">
+                <!-- Pole: Wpisz kod -->
+                <input
+                    type="text"
+                    id="join-code-input"
+                    maxlength="10"
+                    placeholder="Wpisz kod"
+                    autocomplete="off"
+                    class="w-full sm:w-48 text-center uppercase tracking-widest font-bold text-lg bg-white border-2 border-gray-300 text-gray-800 rounded-xl px-4 py-3 shadow-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 transition"
+                />
+
+                <!-- Separator: Albo -->
+                <span class="text-gray-500 font-semibold text-base sm:text-lg px-1 select-none">
+                    Albo
+                </span>
+
+                <!-- Guzik: Stwórz Kod -->
+                <button
+                    id="btn-create-code"
+                    type="button"
+                    class="w-full sm:w-auto bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold text-lg px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Stwórz Kod
+                </button>
+            </div>
+
+            <!-- Dynamiczny guzik "Dołącz" pojawiający się na dole po wpisaniu czegokolwiek w pole "Wpisz kod" -->
+            <div id="join-button-wrapper" class="hidden mt-5 w-full sm:w-auto flex justify-center fade-in">
+                <button
+                    id="btn-join-game"
+                    type="button"
+                    class="w-full sm:w-56 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-lg px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Dołącz
+                </button>
+            </div>
+        </section>
+
+        <!-- EKRAN 2: TYLKO SAM WYGENEROWANY KOD (gdy kliknięto "Stwórz Kod", czekanie na 2. urządzenie) -->
+        <section id="screen-code-only" class="hidden flex-col items-center justify-center text-center fade-in">
+            <div
+                id="generated-code-display"
+                title="Kliknij, aby skopiować kod"
+                class="text-6xl sm:text-8xl font-extrabold tracking-[0.18em] text-gray-900 bg-white border-2 border-gray-200 px-8 py-6 rounded-2xl shadow-md cursor-pointer hover:border-amber-500 active:scale-95 transition select-all"
+            >
+                ...
+            </div>
+            <p id="host-status-hint" class="mt-3 text-xs text-gray-400 font-medium transition-opacity">
+                Rejestrowanie pokoju...
+            </p>
+        </section>
+
+        <!-- EKRAN 3: PLANSZA GRY + SAFE CHAT PO PRAWEJ STRONIE -->
+        <section id="screen-game" class="hidden flex-col lg:flex-row items-center lg:items-start justify-center gap-6 w-full max-w-5xl fade-in">
+
+            <!-- LEWA / ŚRODKOWA KOLUMNA: Status tury + Plansza 3x3 + Koniec gry -->
+            <div class="flex flex-col items-center justify-center w-full max-w-xl">
+                <!-- Pasek statusu tury -->
+                <div class="mb-4 flex flex-wrap items-center justify-center gap-3">
+                    <div id="turn-indicator" class="px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border transition-colors">
+                        Twój ruch
+                    </div>
+                    <div id="player-symbol-badge" class="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-semibold bg-white border border-gray-300 text-gray-700 shadow-sm">
+                        Grasz: X
+                    </div>
+                </div>
+
+                <!-- Plansza 3x3 -->
+                <div id="board" class="board-grid"></div>
+
+                <!-- Panel końca gry -->
+                <div id="game-over-panel" class="hidden mt-5 bg-white border border-gray-200 rounded-2xl p-5 shadow-lg text-center max-w-sm w-full fade-in">
+                    <h2 id="game-over-title" class="text-2xl font-extrabold text-gray-900 mb-1">Koniec gry!</h2>
+                    <p id="game-over-subtitle" class="text-sm text-gray-600 mb-4"></p>
+                    <button
+                        id="btn-play-again"
+                        type="button"
+                        class="w-full bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold py-3 px-6 rounded-xl shadow transition cursor-pointer"
+                    >
+                        Zagraj ponownie
+                    </button>
+                </div>
+            </div>
+
+            <!-- PRAWA KOLUMNA: SAFE CHAT -->
+            <aside class="w-full max-w-md lg:w-72 bg-white border border-gray-200 rounded-2xl shadow-md p-4 flex flex-col lg:mt-12">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-gray-700">Safe Chat</h3>
+                    </div>
+                    <span class="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">Tylko gotowe słowa</span>
+                </div>
+
+                <!-- Historia wysłanych wiadomości Safe Chat -->
+                <div id="safe-chat-messages" class="h-36 lg:h-52 overflow-y-auto flex flex-col gap-2 pr-1 mb-3 text-sm bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                    <div class="text-xs text-gray-400 text-center my-auto select-none">
+                        Kliknij słowo poniżej, aby wysłać
+                    </div>
+                </div>
+
+                <!-- Gotowe przyciski fraz Safe Chat -->
+                <div id="safe-chat-buttons" class="flex flex-wrap gap-1.5">
+                    <button type="button" data-phrase="Hej" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Hej</button>
+                    <button type="button" data-phrase="Siema" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Siema</button>
+                    <button type="button" data-phrase="Nie" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Nie</button>
+                    <button type="button" data-phrase="Tak" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Tak</button>
+                    <button type="button" data-phrase="GG" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">GG</button>
+                    <button type="button" data-phrase="xd" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">xd</button>
+                    <button type="button" data-phrase="muszę kończyć" class="safe-chat-btn bg-gray-100 hover:bg-red-100 hover:text-red-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">muszę kończyć</button>
+                </div>
+            </aside>
+
+        </section>
+
+    </main>
+
+    <!-- STOPKA NA DOLE MAŁYM DRUKIEM -->
+    <footer class="w-full text-center py-3 text-xs text-gray-400 font-medium select-none">
+        created by edimod
+    </footer>
+
+    <script>
+        /**
+         * KÓŁKO I KRZYŻYK ONLINE MULTIPLAYER (MQTT over WSS + BroadcastChannel)
+         */
+
+        const TOPIC_PREFIX = 'edimod-ttt-2026/rooms/';
+        const MQTT_BROKERS = [
+            'wss://broker.emqx.io:8084/mqtt',
+            'wss://broker.hivemq.com:8884/mqtt'
+        ];
+        const ALLOWED_SAFE_CHAT = ['Hej', 'Siema', 'Nie', 'Tak', 'GG', 'xd', 'muszę kończyć'];
+
+        let mqttClient = null;
+        let mqttConnected = false;
+        let activeBrokerIndex = 0;
+
+        let bc = null;
+        let transportMode = null;
+        const clientId = 'edimod_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+
+        let mySymbol = null; // 'X' (host) lub 'O' (gość)
+        let roomCode = '';
+        let opponentClientId = '';
+        let opponentName = '';
+        let isPaired = false;
+
+        let joinPingInterval = null;
+        let joinTimeoutTimer = null;
+        let heartbeatInterval = null;
+
+        // Stan gry TTT
+        let board = Array(9).fill(null);
+        let currentTurn = 'X'; // X zaczyna
+        let gameOver = false;
+
+        // DOM Elements
+        const myNameInput = document.getElementById('my-name-input');
+        const opponentNameBadge = document.getElementById('opponent-name-badge');
+        const opponentNameText = document.getElementById('opponent-name-text');
+        const toastBanner = document.getElementById('toast-banner');
+        const toastMessage = document.getElementById('toast-message');
+
+        const screenStart = document.getElementById('screen-start');
+        const screenCodeOnly = document.getElementById('screen-code-only');
+        const screenGame = document.getElementById('screen-game');
+
+        const joinCodeInput = document.getElementById('join-code-input');
+        const btnCreateCode = document.getElementById('btn-create-code');
+        const joinButtonWrapper = document.getElementById('join-button-wrapper');
+        const btnJoinGame = document.getElementById('btn-join-game');
+
+        const generatedCodeDisplay = document.getElementById('generated-code-display');
+        const hostStatusHint = document.getElementById('host-status-hint');
+
+        const boardEl = document.getElementById('board');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const playerSymbolBadge = document.getElementById('player-symbol-badge');
+        const gameOverPanel = document.getElementById('game-over-panel');
+        const gameOverTitle = document.getElementById('game-over-title');
+        const gameOverSubtitle = document.getElementById('game-over-subtitle');
+        const btnPlayAgain = document.getElementById('btn-play-again');
+
+        const safeChatMessages = document.getElementById('safe-chat-messages');
+        const safeChatButtons = document.querySelectorAll('.safe-chat-btn');
+
+        // --- TRANSPORT ---
+        function isTransportOpen() {
+            if (!isPaired) return false;
+            if (transportMode === 'local') return true;
+            return Boolean(mqttClient && mqttConnected);
+        }
+
+        function publishRoomPacket(payload, forceMode = null) {
+            const mode = forceMode || transportMode;
+            const packet = {
+                sender: clientId,
+                to: opponentClientId || null,
+                room: roomCode,
+                payload: payload,
+                ts: Date.now(),
+                nonce: Math.random()
+            };
+
+            if (mode === 'local' || !mode) {
+                if (bc) { try { bc.postMessage(packet); } catch (e) {} }
+                try { localStorage.setItem('ttt_msg_' + roomCode, JSON.stringify(packet)); } catch (e) {}
+            }
+
+            if ((mode === 'mqtt' || !mode) && mqttClient && mqttConnected && roomCode) {
+                try { mqttClient.publish(TOPIC_PREFIX + roomCode, JSON.stringify(packet), { qos: 1 }); } catch (e) {}
+            }
+        }
+
+        function cleanupConnections() {
+            clearInterval(joinPingInterval);
+            clearTimeout(joinTimeoutTimer);
+            clearInterval(heartbeatInterval);
+
+            if (bc) { try { bc.close(); } catch (e) {} bc = null; }
+            if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+            mqttConnected = false;
+            isPaired = false;
+            opponentClientId = '';
+        }
+
+        let toastTimeout = null;
+        function showToast(msg, isError = true) {
+            toastMessage.textContent = msg;
+            toastBanner.className = `fixed top-16 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw] ${isError ? 'bg-red-600' : 'bg-emerald-600'}`;
+            toastBanner.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { toastBanner.classList.add('hidden'); }, 3800);
+        }
+
+        function updateOpponentNameUI() {
+            const trimmed = (opponentName || '').trim();
+            if (isPaired && trimmed.length > 0) {
+                opponentNameText.textContent = trimmed;
+                opponentNameBadge.classList.remove('hidden');
+            } else {
+                opponentNameBadge.classList.add('hidden');
+                opponentNameText.textContent = '';
+            }
+        }
+
+        function sendMyName() {
+            if (isTransportOpen()) {
+                publishRoomPacket({ type: 'NAME_UPDATE', name: myNameInput.value.trim() });
+            }
+        }
+        myNameInput.addEventListener('input', () => { sendMyName(); });
+
+        // --- SAFE CHAT ---
+        function appendSafeChatMessage(phrase, isMine) {
+            if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+            const placeholder = safeChatMessages.querySelector('.text-center');
+            if (placeholder) placeholder.remove();
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex flex-col ${isMine ? 'items-end' : 'items-start'} fade-in`;
+
+            const senderLabel = document.createElement('span');
+            senderLabel.className = 'text-[10px] font-semibold text-gray-400 mb-0.5 px-1';
+            senderLabel.textContent = isMine ? 'Ty' : (opponentName.trim() || 'Przeciwnik');
+
+            const bubble = document.createElement('div');
+            bubble.className = isMine
+                ? 'bg-amber-700 text-white font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-br-sm shadow-sm'
+                : 'bg-white text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-bl-sm border border-gray-200 shadow-sm';
+            bubble.textContent = phrase;
+
+            wrapper.appendChild(senderLabel);
+            wrapper.appendChild(bubble);
+            safeChatMessages.appendChild(wrapper);
+            safeChatMessages.scrollTop = safeChatMessages.scrollHeight;
+        }
+
+        let chatCooldown = false;
+        safeChatButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (chatCooldown || !isTransportOpen()) return;
+                const phrase = btn.getAttribute('data-phrase');
+                if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+
+                appendSafeChatMessage(phrase, true);
+                publishRoomPacket({ type: 'SAFE_CHAT', phrase: phrase });
+                chatCooldown = true;
+                setTimeout(() => { chatCooldown = false; }, 700);
+            });
+        });
+
+        function showScreen(screenName) {
+            screenStart.classList.add('hidden');
+            screenCodeOnly.classList.add('hidden');
+            screenGame.classList.add('hidden');
+
+            if (screenName === 'start') screenStart.classList.remove('hidden');
+            else if (screenName === 'code') { screenCodeOnly.classList.remove('hidden'); screenCodeOnly.classList.add('flex'); }
+            else if (screenName === 'game') { screenGame.classList.remove('hidden'); screenGame.classList.add('flex'); }
+        }
+
+        joinCodeInput.addEventListener('input', () => {
+            if (joinCodeInput.value.trim().length > 0) joinButtonWrapper.classList.remove('hidden');
+            else joinButtonWrapper.classList.add('hidden');
+        });
+        joinCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && joinCodeInput.value.trim().length > 0) btnJoinGame.click();
+        });
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            return code;
+        }
+
+        generatedCodeDisplay.addEventListener('click', () => {
+            if (!roomCode || generatedCodeDisplay.textContent === '...') return;
+            const tempInput = document.createElement('input');
+            tempInput.value = roomCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                hostStatusHint.textContent = 'Skopiowano kod do schowka!';
+                hostStatusHint.className = 'mt-3 text-xs text-emerald-600 font-semibold transition-opacity';
+                setTimeout(() => {
+                    if (!isPaired) {
+                        hostStatusHint.textContent = 'Gotowy – czekam na drugiego gracza';
+                        hostStatusHint.className = 'mt-3 text-xs text-gray-400 font-medium transition-opacity';
+                    }
+                }, 2000);
+            } catch (err) {}
+            document.body.removeChild(tempInput);
+        });
+
+        function setupLocalChannel(code) {
+            const channelName = 'ttt_room_' + code;
+            const storageMsgKey = 'ttt_msg_' + code;
+
+            if ('BroadcastChannel' in window) {
+                bc = new BroadcastChannel(channelName);
+                bc.onmessage = (event) => { handleIncomingPacket(event.data, 'local'); };
+            }
+
+            window.addEventListener('storage', (event) => {
+                if (event.key === storageMsgKey && event.newValue) {
+                    try {
+                        const packet = JSON.parse(event.newValue);
+                        handleIncomingPacket(packet, 'local');
+                    } catch (e) {}
+                }
+            });
+        }
+
+        function connectMqttToRoom(code, onBrokerReady, onBrokerAllFailed) {
+            if (typeof mqtt === 'undefined') {
+                onBrokerAllFailed('Biblioteka sieciowa nie została załadowana.');
+                return;
+            }
+
+            let brokerAttemptIndex = activeBrokerIndex;
+            let attemptsCount = 0;
+
+            const tryBroker = (idx) => {
+                if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+                mqttConnected = false;
+
+                const client = mqtt.connect(MQTT_BROKERS[idx], {
+                    clientId: clientId,
+                    clean: true,
+                    connectTimeout: 5500,
+                    reconnectPeriod: 2000,
+                    keepalive: 25
+                });
+                mqttClient = client;
+                let opened = false;
+
+                client.on('connect', () => {
+                    if (mqttClient !== client) return;
+                    opened = true;
+                    mqttConnected = true;
+                    activeBrokerIndex = idx;
+                    client.subscribe(TOPIC_PREFIX + code, { qos: 1 }, (err) => {
+                        if (err) { onBrokerAllFailed('Błąd subskrypcji pokoju.'); return; }
+                        if (onBrokerReady) onBrokerReady();
+                    });
+                });
+
+                client.on('message', (topic, messageBuffer) => {
+                    if (mqttClient !== client || topic !== TOPIC_PREFIX + code) return;
+                    try {
+                        const packet = JSON.parse(messageBuffer.toString());
+                        handleIncomingPacket(packet, 'mqtt');
+                    } catch (e) {}
+                });
+
+                client.on('error', () => {
+                    if (mqttClient !== client) return;
+                    if (!opened) {
+                        try { client.end(true); } catch (e) {}
+                        attemptsCount++;
+                        if (attemptsCount < MQTT_BROKERS.length) tryBroker((idx + 1) % MQTT_BROKERS.length);
+                        else if (!isPaired) onBrokerAllFailed('Brak połączenia z serwerem gry.');
+                    }
+                });
+            };
+
+            tryBroker(brokerAttemptIndex);
+        }
+
+        function handleIncomingPacket(packet, sourceMode) {
+            if (!packet || packet.sender === clientId || packet.room !== roomCode) return;
+            if (packet.to && packet.to !== clientId) return;
+
+            const data = packet.payload;
+            if (!data || typeof data !== 'object') return;
+
+            if (mySymbol === 'X' && data.type === 'JOIN_REQUEST') {
+                if (!isPaired) {
+                    isPaired = true;
+                    transportMode = sourceMode;
+                    opponentClientId = packet.sender;
+                    opponentName = data.name || '';
+                    initGame();
+                    publishRoomPacket({
+                        type: 'WELCOME_SYNC',
+                        board: board,
+                        currentTurn: currentTurn,
+                        name: myNameInput.value.trim()
+                    }, sourceMode);
+                    startHeartbeat();
+                    updateOpponentNameUI();
+                    startSyncedGameUI();
+                }
+                return;
+            }
+
+            if (mySymbol === 'O' && !isPaired && data.type === 'WELCOME_SYNC') {
+                isPaired = true;
+                transportMode = sourceMode;
+                opponentClientId = packet.sender;
+                opponentName = data.name || '';
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                resetJoinButton();
+                startHeartbeat();
+                sendMyName();
+                
+                board = data.board;
+                currentTurn = data.currentTurn;
+                updateOpponentNameUI();
+                startSyncedGameUI();
+                return;
+            }
+
+            if (isPaired && packet.sender === opponentClientId) {
+                handleIncomingGameData(data);
+            }
+        }
+
+        function startHeartbeat() {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (isTransportOpen()) publishRoomPacket({ type: 'PING' });
+            }, 5000);
+        }
+
+        btnCreateCode.addEventListener('click', () => {
+            btnCreateCode.disabled = true;
+            cleanupConnections();
+            mySymbol = 'X';
+            roomCode = generateRoomCode();
+            generatedCodeDisplay.textContent = '...';
+            hostStatusHint.textContent = 'Rejestrowanie pokoju...';
+            showScreen('code');
+
+            setupLocalChannel(roomCode);
+            connectMqttToRoom(roomCode, () => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = 'Kliknij kod, aby skopiować';
+                btnCreateCode.disabled = false;
+            }, (errMsg) => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = errMsg;
+                hostStatusHint.className = 'mt-3 text-xs text-red-500 font-semibold transition-opacity';
+                showToast(errMsg);
+                btnCreateCode.disabled = false;
+            });
+        });
+
+        btnJoinGame.addEventListener('click', () => {
+            const rawCode = joinCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!rawCode) return;
+
+            cleanupConnections();
+            btnJoinGame.disabled = true;
+            btnJoinGame.textContent = 'Łączenie...';
+            mySymbol = 'O';
+            roomCode = rawCode;
+
+            setupLocalChannel(roomCode);
+            const sendJoinRequest = () => {
+                if (!isPaired) publishRoomPacket({ type: 'JOIN_REQUEST', name: myNameInput.value.trim() });
+            };
+
+            sendJoinRequest();
+            connectMqttToRoom(roomCode, () => {
+                sendJoinRequest();
+                joinPingInterval = setInterval(() => {
+                    if (!isPaired) sendJoinRequest();
+                    else clearInterval(joinPingInterval);
+                }, 1200);
+            }, (errMsg) => {
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                showToast(errMsg);
+                resetJoinButton();
+            });
+
+            joinTimeoutTimer = setTimeout(() => {
+                clearInterval(joinPingInterval);
+                if (!isPaired) {
+                    showToast('Nie znaleziono pokoju o kodzie: ' + roomCode);
+                    resetJoinButton();
+                    cleanupConnections();
+                }
+            }, 12000);
+        });
+
+        function resetJoinButton() {
+            btnJoinGame.disabled = false;
+            btnJoinGame.textContent = 'Dołącz';
+        }
+
+        function handleIncomingGameData(data) {
+            if (!data || typeof data !== 'object') return;
+
+            switch (data.type) {
+                case 'NAME_UPDATE':
+                    opponentName = data.name || '';
+                    updateOpponentNameUI();
+                    break;
+                case 'SAFE_CHAT':
+                    if (typeof data.phrase === 'string') appendSafeChatMessage(data.phrase, false);
+                    break;
+                case 'MOVE':
+                    board = data.board;
+                    currentTurn = data.currentTurn;
+                    gameOver = data.gameOver || false;
+                    renderBoard();
+                    updateTurnUI();
+                    if (gameOver) {
+                        showGameOver(data.winner);
+                    }
+                    break;
+                case 'RESTART':
+                    initGame();
+                    gameOverPanel.classList.add('hidden');
+                    renderBoard();
+                    updateTurnUI();
+                    showToast('Rozpoczęto nową grę!', false);
+                    break;
+            }
+        }
+
+        function initGame() {
+            board = Array(9).fill(null);
+            currentTurn = 'X';
+            gameOver = false;
+        }
+
+        function startSyncedGameUI() {
+            initGame();
+            gameOverPanel.classList.add('hidden');
+            safeChatMessages.innerHTML = `<div class="text-xs text-gray-400 text-center my-auto select-none">Kliknij słowo poniżej, aby wysłać</div>`;
+            playerSymbolBadge.textContent = 'Grasz: ' + mySymbol;
+            showScreen('game');
+            renderBoard();
+            updateTurnUI();
+        }
+
+        // --- LOGIKA KÓŁKA I KRZYŻYKA ---
+        function checkWinner(b) {
+            const wins = [
+                [0,1,2], [3,4,5], [6,7,8], // rzędy
+                [0,3,6], [1,4,7], [2,5,8], // kolumny
+                [0,4,8], [2,4,6]           // przekątne
+            ];
+            for (const [x, y, z] of wins) {
+                if (b[x] && b[x] === b[y] && b[x] === b[z]) {
+                    return b[x]; // 'X' lub 'O'
+                }
+            }
+            if (b.every(cell => cell !== null)) {
+                return 'tie'; // remis
+            }
+            return null;
+        }
+
+        function handleCellClick(index) {
+            if (gameOver || !isPaired) return;
+            if (currentTurn !== mySymbol) return;
+            if (board[index] !== null) return;
+
+            board[index] = mySymbol;
+
+            const winResult = checkWinner(board);
+            if (winResult) {
+                gameOver = true;
+            } else {
+                currentTurn = currentTurn === 'X' ? 'O' : 'X';
+            }
+
+            renderBoard();
+            updateTurnUI();
+
+            if (isTransportOpen()) {
+                publishRoomPacket({
+                    type: 'MOVE',
+                    board: board,
+                    currentTurn: currentTurn,
+                    gameOver: gameOver,
+                    winner: winResult
+                });
+            }
+
+            if (gameOver) {
+                showGameOver(winResult);
+            }
+        }
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            board.forEach((val, idx) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                if (val) {
+                    cell.classList.add('filled');
+                    cell.textContent = val;
+                    cell.classList.add(val === 'X' ? 'cell-x' : 'cell-o');
+                }
+                cell.addEventListener('click', () => handleCellClick(idx));
+                boardEl.appendChild(cell);
+            });
+        }
+
+        function updateTurnUI() {
+            if (gameOver) {
+                turnIndicator.textContent = 'Koniec partii';
+                turnIndicator.className = 'px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border bg-gray-200 text-gray-800 border-gray-300';
+                return;
+            }
+
+            if (currentTurn === mySymbol) {
+                turnIndicator.textContent = 'Twój ruch';
+                turnIndicator.className = 'px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border bg-emerald-600 text-white border-emerald-700';
+            } else {
+                turnIndicator.textContent = 'Ruch przeciwnika';
+                turnIndicator.className = 'px-5 py-2 rounded-full font-bold text-base sm:text-lg shadow-sm border bg-white text-gray-700 border-gray-300';
+            }
+        }
+
+        function showGameOver(winner) {
+            gameOverPanel.classList.remove('hidden');
+            if (winner === 'tie') {
+                gameOverTitle.textContent = 'Remis! 🤝';
+                gameOverSubtitle.textContent = 'Nikt nie wygrał tej partii.';
+            } else if (winner === mySymbol) {
+                gameOverTitle.textContent = 'Wygrałeś! 🎉';
+                gameOverSubtitle.textContent = 'Gratulacje, świetna partia!';
+            } else {
+                gameOverTitle.textContent = 'Przegrałeś';
+                gameOverSubtitle.textContent = 'Przeciwnik wygrał tę partię.';
+            }
+        }
+
+        btnPlayAgain.addEventListener('click', () => {
+            if (!isTransportOpen()) {
+                showToast('Brak połączenia z przeciwnikiem.');
+                return;
+            }
+            initGame();
+            gameOverPanel.classList.add('hidden');
+            renderBoard();
+            updateTurnUI();
+
+            publishRoomPacket({
+                type: 'RESTART',
+                board: board,
+                currentTurn: currentTurn
+            });
+        });
+    </script>
+</body>
+</html>
