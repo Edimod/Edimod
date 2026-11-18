@@ -10,17 +10,24 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
         }
 
         body {
             background-color: #f4f6f9;
             color: #333;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         header {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+        }
+
+        footer {
+            margin-top: 40px;
         }
 
         .btn-home {
@@ -39,7 +46,7 @@
         }
 
         .section-title {
-            font-size: 1.8rem;
+            font-size: 2.5rem;
             margin-bottom: 20px;
             color: #2c3e50;
         }
@@ -49,6 +56,7 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             max-width: 900px;
+            width: 100%;
         }
 
         .game-card {
@@ -85,12 +93,10 @@
 <body>
 
     <header>
-        <a href="index.html" class="btn-home">← Home</a>
+        <h1 class="section-title">Gry</h1>
     </header>
 
     <main>
-        <h1 class="section-title">Gry &gt;</h1>
-
         <div class="games-grid">
 
             <a href="zgadywanki.html" class="game-card">
@@ -126,6 +132,9 @@
         </div>
     </main>
 
+    <footer>
+        <a href="index.html" class="btn-home">← Strona główna</a>
+    </footer>
+
 </body>
 </html>
-```
