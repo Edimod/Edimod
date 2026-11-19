@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNO Online</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MQTT.js (WSS na porcie 443 - działa na GitHub Pages, LTE/5G oraz w sieciach szkolnych) -->
+    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+    <!-- Czcionka Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eceff4;
+            color: #1f2937;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Klasyczny stół do gry */
+        .uno-felt {
+            background: radial-gradient(circle at 50% 45%, #166534 0%, #14532d 70%, #052e16 100%);
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.45), 0 12px 28px rgba(0, 0, 0, 0.18);
+        }
+
+        /* Prawdziwy wygląd karty UNO: biała ramka + czarne/kolorowe wnętrze + pochylona elipsa */
+        .uno-card {
+            width: 82px;
+            height: 124px;
+            border-radius: 12px;
+            position: relative;
+            background-color: #ffffff;
+            padding: 5px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.28);
+            transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        @media (min-width: 640px) {
+            .uno-card {
+                width: 96px;
+                height: 144px;
+                border-radius: 14px;
+                padding: 6px;
+            }
+        }
+
+        .uno-card-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 9px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .card-red .uno-card-inner { background-color: #d91e2a; }
+        .card-yellow .uno-card-inner { background-color: #f5c400; }
+        .card-green .uno-card-inner { background-color: #1ea846; }
+        .card-blue .uno-card-inner { background-color: #1b66d1; }
+        .card-wild .uno-card-inner { background-color: #141416; }
+
+        /* Pochylona biała elipsa na środku karty */
+        .uno-ellipse {
+            width: 78%;
+            height: 62%;
+            background-color: #ffffff;
+            border-radius: 50%;
+            transform: rotate(-32deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.08);
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-wild .uno-ellipse {
+            background-color: #141416;
+            box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
+        }
+
+        .uno-center-mark {
+            transform: rotate(32deg);
+            font-weight: 900;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-red .uno-center-mark { color: #d91e2a; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.22); }
+        .card-yellow .uno-center-mark { color: #d99b00; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.22); }
+        .card-green .uno-center-mark { color: #1ea846; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.22); }
+        .card-blue .uno-center-mark { color: #1b66d1; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.22); }
+
+        /* Podkreślenie pod 6 i 9 jak w prawdziwym UNO */
+        .underline-digit {
+            border-bottom: 4px solid currentColor;
+            padding-bottom: 1px;
+            display: inline-block;
+            line-height: 0.92;
+        }
+
+        .corner-underline {
+            border-bottom: 2px solid currentColor;
+            display: inline-block;
+            line-height: 0.92;
+        }
+
+        /* Narożniki karty */
+        .uno-corner {
+            position: absolute;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 0.85rem;
+            line-height: 1;
+            z-index: 3;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        @media (min-width: 640px) {
+            .uno-corner {
+                font-size: 1rem;
+            }
+        }
+
+        .uno-corner-tl {
+            top: 5px;
+            left: 6px;
+        }
+
+        .uno-corner-br {
+            bottom: 5px;
+            right: 6px;
+            transform: rotate(180deg);
+        }
+
+        /* 4 kolorowe kwadraty dla karty Wild i +4 */
+        .quad-colors {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            overflow: hidden;
+            transform: rotate(18deg);
+            border: 2px solid #ffffff;
+        }
+
+        @media (min-width: 640px) {
+            .quad-colors {
+                width: 52px;
+                height: 52px;
+            }
+        }
+
+        /* Klasyczny rewers karty UNO */
+        .uno-card-back {
+            background-color: #ffffff;
+        }
+
+        .uno-card-back .uno-card-inner {
+            background-color: #141416;
+        }
+
+        .uno-back-oval {
+            width: 82%;
+            height: 64%;
+            background-color: #d91e2a;
+            border-radius: 50%;
+            transform: rotate(-32deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.25);
+        }
+
+        .uno-back-logo {
+            transform: rotate(32deg);
+            color: #f5c400;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            text-shadow: 2px 2px 0 #8f0f17, -1px -1px 0 #8f0f17;
+        }
+
+        .uno-card.playable:hover {
+            transform: translateY(-12px) scale(1.04);
+            box-shadow: 0 16px 24px rgba(0, 0, 0, 0.42);
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .uno-card.unplayable {
+            opacity: 0.55;
+            filter: brightness(0.85);
+            cursor: not-allowed;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- LEWY GÓRNY RÓG: Nazwa konta oraz status "Grasz z [NAZWA]" -->
+    <header class="fixed top-0 left-0 z-40 p-3 sm:p-4 flex flex-wrap items-center gap-3 max-w-full">
+        <input
+            type="text"
+            id="my-name-input"
+            maxlength="24"
+            placeholder="Twoja nazwa konta"
+            autocomplete="off"
+            class="bg-white/95 backdrop-blur border border-gray-300 text-gray-800 text-sm sm:text-base font-medium rounded-xl px-3.5 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-amber-600 w-44 sm:w-56 transition"
+        />
+        <div id="opponent-name-badge" class="hidden bg-amber-900 text-amber-50 text-sm sm:text-base font-semibold px-3.5 py-2 rounded-xl shadow-sm fade-in">
+            Grasz z <span id="opponent-name-text" class="font-bold underline decoration-amber-400"></span>
+        </div>
+    </header>
+
+    <!-- Komunikat błędu / powiadomienie -->
+    <div id="toast-banner" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw]">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- Modal wyboru koloru dla kart Wild / +4 -->
+    <div id="color-picker-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200 max-w-xs w-full text-center fade-in">
+            <h3 class="text-lg font-extrabold text-gray-900 mb-4">Wybierz kolor</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" data-color="red" class="pick-color-btn py-3.5 rounded-xl font-bold text-white bg-[#d91e2a] hover:brightness-110 active:scale-95 transition cursor-pointer">Czerwony</button>
+                <button type="button" data-color="blue" class="pick-color-btn py-3.5 rounded-xl font-bold text-white bg-[#1b66d1] hover:brightness-110 active:scale-95 transition cursor-pointer">Niebieski</button>
+                <button type="button" data-color="green" class="pick-color-btn py-3.5 rounded-xl font-bold text-white bg-[#1ea846] hover:brightness-110 active:scale-95 transition cursor-pointer">Zielony</button>
+                <button type="button" data-color="yellow" class="pick-color-btn py-3.5 rounded-xl font-bold text-gray-900 bg-[#f5c400] hover:brightness-105 active:scale-95 transition cursor-pointer">Żółty</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GŁÓWNA PRZESTRZEŃ ROBOCZA -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 pt-20 pb-12 w-full">
+
+        <!-- EKRAN 1: EKRAN STARTOWY -->
+        <section id="screen-start" class="w-full max-w-xl flex flex-col items-center justify-center fade-in">
+            <div class="flex items-center justify-center gap-4 sm:gap-5 mb-8 select-none">
+                <div class="w-16 h-20 sm:w-20 sm:h-24 bg-white rounded-2xl shadow-lg p-1.5 -rotate-6 flex items-center justify-center">
+                    <div class="w-full h-full bg-[#141416] rounded-xl flex items-center justify-center">
+                        <div class="w-12 h-9 sm:w-14 sm:h-10 bg-[#d91e2a] rounded-full -rotate-12 flex items-center justify-center">
+                            <span class="text-[#f5c400] font-black text-sm sm:text-base tracking-tight">UNO</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col leading-none text-left">
+                    <span class="text-3xl sm:text-4xl font-black tracking-tight text-gray-900">
+                        Karty UNO
+                    </span>
+                    <span class="text-2xl sm:text-3xl font-extrabold tracking-wide text-amber-600 mt-1">
+                        Online
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full">
+                <input
+                    type="text"
+                    id="join-code-input"
+                    maxlength="10"
+                    placeholder="Wpisz kod"
+                    autocomplete="off"
+                    class="w-full sm:w-48 text-center uppercase tracking-widest font-bold text-lg bg-white border-2 border-gray-300 text-gray-800 rounded-xl px-4 py-3 shadow-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/30 transition"
+                />
+
+                <span class="text-gray-500 font-semibold text-base sm:text-lg px-1 select-none">
+                    Albo
+                </span>
+
+                <button
+                    id="btn-create-code"
+                    type="button"
+                    class="w-full sm:w-auto bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold text-lg px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Stwórz Kod
+                </button>
+            </div>
+
+            <div id="join-button-wrapper" class="hidden mt-5 w-full sm:w-auto flex justify-center fade-in">
+                <button
+                    id="btn-join-game"
+                    type="button"
+                    class="w-full sm:w-56 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-lg px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
+                >
+                    Dołącz
+                </button>
+            </div>
+        </section>
+
+        <!-- EKRAN 2: TYLKO SAM WYGENEROWANY KOD -->
+        <section id="screen-code-only" class="hidden flex-col items-center justify-center text-center fade-in">
+            <div
+                id="generated-code-display"
+                title="Kliknij, aby skopiować kod"
+                class="text-6xl sm:text-8xl font-extrabold tracking-[0.18em] text-gray-900 bg-white border-2 border-gray-200 px-8 py-6 rounded-2xl shadow-md cursor-pointer hover:border-amber-500 active:scale-95 transition select-all"
+            >
+                ...
+            </div>
+            <p id="host-status-hint" class="mt-3 text-xs text-gray-400 font-medium transition-opacity">
+                Rejestrowanie pokoju...
+            </p>
+        </section>
+
+        <!-- EKRAN 3: STÓŁ UNO + SAFE CHAT PO PRAWEJ STRONIE -->
+        <section id="screen-game" class="hidden flex-col lg:flex-row items-center lg:items-start justify-center gap-6 w-full max-w-6xl fade-in">
+
+            <!-- LEWA / ŚRODKOWA KOLUMNA: Zielony stół UNO -->
+            <div class="uno-felt flex flex-col items-center justify-between w-full max-w-3xl rounded-3xl p-4 sm:p-6 gap-5 text-white">
+
+                <!-- Górny pasek: status tury, aktywny kolor i liczba kart przeciwnika -->
+                <div class="w-full flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/15">
+                    <div id="turn-indicator" class="px-4 py-1.5 rounded-full font-bold text-sm sm:text-base shadow-xs border transition-colors">
+                        Twój ruch
+                    </div>
+
+                    <div class="flex items-center gap-2 bg-black/25 px-3 py-1 rounded-full">
+                        <span class="text-xs font-semibold text-white/80">Kolor:</span>
+                        <span id="active-color-badge" class="px-3 py-0.5 rounded-full text-xs font-extrabold uppercase text-white shadow-xs">
+                            —
+                        </span>
+                    </div>
+
+                    <div id="opponent-cards-badge" class="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-black/30 text-white border border-white/15">
+                        Przeciwnik: 7 kart
+                    </div>
+                </div>
+
+                <!-- Rewersy kart przeciwnika -->
+                <div id="opponent-hand-backs" class="flex items-center justify-center flex-wrap gap-1.5 min-h-[54px]"></div>
+
+                <!-- Środek stołu: Talii dobierania + Stos odrzuconych -->
+                <div class="flex items-center justify-center gap-8 sm:gap-12 py-2">
+                    <button id="btn-draw-card" type="button" class="flex flex-col items-center gap-2 group cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed">
+                        <div class="uno-card uno-card-back group-hover:-translate-y-1.5 transition">
+                            <div class="uno-card-inner">
+                                <div class="uno-back-oval">
+                                    <span class="uno-back-logo text-xl sm:text-2xl">UNO</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span id="deck-count-label" class="text-xs font-bold text-white/90 bg-black/30 px-2.5 py-0.5 rounded-full">Dobierz</span>
+                    </button>
+
+                    <div class="flex flex-col items-center gap-2">
+                        <div id="discard-pile" class="flex items-center justify-center min-h-[124px] sm:min-h-[144px]"></div>
+                        <span class="text-xs font-semibold text-white/75">Stos odrzuconych</span>
+                    </div>
+                </div>
+
+                <!-- Ręka gracza -->
+                <div class="w-full pt-3 border-t border-white/15">
+                    <div class="flex items-center justify-between mb-2 px-1">
+                        <span class="text-xs font-extrabold uppercase tracking-wider text-white/80">Twoje karty</span>
+                        <span id="my-cards-count" class="text-xs font-bold text-white">0 kart</span>
+                    </div>
+                    <div id="my-hand" class="flex items-center justify-center flex-wrap gap-2 min-h-[132px] sm:min-h-[152px] py-1"></div>
+                </div>
+
+                <!-- Panel końca gry -->
+                <div id="game-over-panel" class="hidden bg-white text-gray-900 rounded-2xl p-4 text-center w-full shadow-xl fade-in">
+                    <h2 id="game-over-title" class="text-xl sm:text-2xl font-extrabold text-gray-900 mb-1">Koniec gry!</h2>
+                    <p id="game-over-subtitle" class="text-sm text-gray-600 mb-3"></p>
+                    <button
+                        id="btn-play-again"
+                        type="button"
+                        class="bg-amber-700 hover:bg-amber-800 active:scale-[0.98] text-white font-bold py-2.5 px-6 rounded-xl shadow transition cursor-pointer"
+                    >
+                        Zagraj ponownie
+                    </button>
+                </div>
+            </div>
+
+            <!-- PRAWA KOLUMNA: SAFE CHAT -->
+            <aside class="w-full max-w-md lg:w-72 bg-white border border-gray-200 rounded-2xl shadow-md p-4 flex flex-col lg:mt-4">
+                <div class="flex items-center justify-between pb-2.5 mb-3 border-b border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <h3 class="text-sm font-extrabold uppercase tracking-wider text-gray-700">Safe Chat</h3>
+                    </div>
+                    <span class="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">Tylko gotowe słowa</span>
+                </div>
+
+                <div id="safe-chat-messages" class="h-36 lg:h-52 overflow-y-auto flex flex-col gap-2 pr-1 mb-3 text-sm bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                    <div class="text-xs text-gray-400 text-center my-auto select-none">
+                        Kliknij słowo poniżej, aby wysłać
+                    </div>
+                </div>
+
+                <div id="safe-chat-buttons" class="flex flex-wrap gap-1.5">
+                    <button type="button" data-phrase="Hej" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Hej</button>
+                    <button type="button" data-phrase="Siema" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Siema</button>
+                    <button type="button" data-phrase="Nie" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Nie</button>
+                    <button type="button" data-phrase="Tak" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">Tak</button>
+                    <button type="button" data-phrase="GG" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">GG</button>
+                    <button type="button" data-phrase="xd" class="safe-chat-btn bg-gray-100 hover:bg-amber-100 hover:text-amber-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">xd</button>
+                    <button type="button" data-phrase="muszę kończyć" class="safe-chat-btn bg-gray-100 hover:bg-red-100 hover:text-red-900 active:scale-95 text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-xl border border-gray-200 transition cursor-pointer">muszę kończyć</button>
+                </div>
+            </aside>
+
+        </section>
+
+    </main>
+
+    <!-- STOPKA NA DOLE MAŁYM DRUKIEM -->
+    <footer class="w-full text-center py-3 text-xs text-gray-400 font-medium select-none">
+        created by edimod
+    </footer>
+
+    <script>
+        /**
+         * UNO ONLINE MULTIPLAYER (MQTT over WSS + BroadcastChannel)
+         */
+
+        const TOPIC_PREFIX = 'edimod-uno-2026/rooms/';
+        const MQTT_BROKERS = [
+            'wss://broker.emqx.io:8084/mqtt',
+            'wss://broker.hivemq.com:8884/mqtt'
+        ];
+        const ALLOWED_SAFE_CHAT = ['Hej', 'Siema', 'Nie', 'Tak', 'GG', 'xd', 'muszę kończyć'];
+
+        const COLORS = ['red', 'yellow', 'green', 'blue'];
+        const COLOR_LABELS = {
+            red: 'Czerwony',
+            yellow: 'Żółty',
+            green: 'Zielony',
+            blue: 'Niebieski'
+        };
+        const COLOR_BADGE_CLASSES = {
+            red: 'bg-[#d91e2a]',
+            yellow: 'bg-[#f5c400] text-gray-950',
+            green: 'bg-[#1ea846]',
+            blue: 'bg-[#1b66d1]'
+        };
+
+        let mqttClient = null;
+        let mqttConnected = false;
+        let activeBrokerIndex = 0;
+
+        let bc = null;
+        let transportMode = null;
+        const clientId = 'edimod_uno_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+
+        let mySymbol = null;
+        let roomCode = '';
+        let opponentClientId = '';
+        let opponentName = '';
+        let isPaired = false;
+
+        let joinPingInterval = null;
+        let joinTimeoutTimer = null;
+        let heartbeatInterval = null;
+
+        let deck = [];
+        let discardPile = [];
+        let handX = [];
+        let handO = [];
+        let activeColor = 'red';
+        let currentTurn = 'X';
+        let gameOver = false;
+        let pendingWildCard = null;
+
+        const myNameInput = document.getElementById('my-name-input');
+        const opponentNameBadge = document.getElementById('opponent-name-badge');
+        const opponentNameText = document.getElementById('opponent-name-text');
+        const toastBanner = document.getElementById('toast-banner');
+        const toastMessage = document.getElementById('toast-message');
+
+        const colorPickerModal = document.getElementById('color-picker-modal');
+        const pickColorButtons = document.querySelectorAll('.pick-color-btn');
+
+        const screenStart = document.getElementById('screen-start');
+        const screenCodeOnly = document.getElementById('screen-code-only');
+        const screenGame = document.getElementById('screen-game');
+
+        const joinCodeInput = document.getElementById('join-code-input');
+        const btnCreateCode = document.getElementById('btn-create-code');
+        const joinButtonWrapper = document.getElementById('join-button-wrapper');
+        const btnJoinGame = document.getElementById('btn-join-game');
+
+        const generatedCodeDisplay = document.getElementById('generated-code-display');
+        const hostStatusHint = document.getElementById('host-status-hint');
+
+        const turnIndicator = document.getElementById('turn-indicator');
+        const activeColorBadge = document.getElementById('active-color-badge');
+        const opponentCardsBadge = document.getElementById('opponent-cards-badge');
+        const opponentHandBacks = document.getElementById('opponent-hand-backs');
+        const btnDrawCard = document.getElementById('btn-draw-card');
+        const deckCountLabel = document.getElementById('deck-count-label');
+        const discardPileEl = document.getElementById('discard-pile');
+        const myHandEl = document.getElementById('my-hand');
+        const myCardsCountEl = document.getElementById('my-cards-count');
+
+        const gameOverPanel = document.getElementById('game-over-panel');
+        const gameOverTitle = document.getElementById('game-over-title');
+        const gameOverSubtitle = document.getElementById('game-over-subtitle');
+        const btnPlayAgain = document.getElementById('btn-play-again');
+
+        const safeChatMessages = document.getElementById('safe-chat-messages');
+        const safeChatButtons = document.querySelectorAll('.safe-chat-btn');
+
+        function isTransportOpen() {
+            if (!isPaired) return false;
+            if (transportMode === 'local') return true;
+            return Boolean(mqttClient && mqttConnected);
+        }
+
+        function publishRoomPacket(payload, forceMode = null) {
+            const mode = forceMode || transportMode;
+            const packet = {
+                sender: clientId,
+                to: opponentClientId || null,
+                room: roomCode,
+                payload: payload,
+                ts: Date.now(),
+                nonce: Math.random()
+            };
+
+            if (mode === 'local' || !mode) {
+                if (bc) { try { bc.postMessage(packet); } catch (e) {} }
+                try { localStorage.setItem('uno_msg_' + roomCode, JSON.stringify(packet)); } catch (e) {}
+            }
+
+            if ((mode === 'mqtt' || !mode) && mqttClient && mqttConnected && roomCode) {
+                try { mqttClient.publish(TOPIC_PREFIX + roomCode, JSON.stringify(packet), { qos: 1 }); } catch (e) {}
+            }
+        }
+
+        function cleanupConnections() {
+            clearInterval(joinPingInterval);
+            clearTimeout(joinTimeoutTimer);
+            clearInterval(heartbeatInterval);
+
+            if (bc) { try { bc.close(); } catch (e) {} bc = null; }
+            if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+            mqttConnected = false;
+            isPaired = false;
+            opponentClientId = '';
+        }
+
+        let toastTimeout = null;
+        function showToast(msg, isError = true) {
+            toastMessage.textContent = msg;
+            toastBanner.className = `fixed top-16 left-1/2 -translate-x-1/2 z-50 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all text-center max-w-[92vw] ${isError ? 'bg-red-600' : 'bg-emerald-600'}`;
+            toastBanner.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { toastBanner.classList.add('hidden'); }, 3800);
+        }
+
+        function updateOpponentNameUI() {
+            const trimmed = (opponentName || '').trim();
+            if (isPaired && trimmed.length > 0) {
+                opponentNameText.textContent = trimmed;
+                opponentNameBadge.classList.remove('hidden');
+            } else {
+                opponentNameBadge.classList.add('hidden');
+                opponentNameText.textContent = '';
+            }
+        }
+
+        function sendMyName() {
+            if (isTransportOpen()) {
+                publishRoomPacket({ type: 'NAME_UPDATE', name: myNameInput.value.trim() });
+            }
+        }
+        myNameInput.addEventListener('input', () => { sendMyName(); });
+
+        function appendSafeChatMessage(phrase, isMine) {
+            if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+            const placeholder = safeChatMessages.querySelector('.text-center');
+            if (placeholder) placeholder.remove();
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex flex-col ${isMine ? 'items-end' : 'items-start'} fade-in`;
+
+            const senderLabel = document.createElement('span');
+            senderLabel.className = 'text-[10px] font-semibold text-gray-400 mb-0.5 px-1';
+            senderLabel.textContent = isMine ? 'Ty' : (opponentName.trim() || 'Przeciwnik');
+
+            const bubble = document.createElement('div');
+            bubble.className = isMine
+                ? 'bg-amber-700 text-white font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-br-sm shadow-sm'
+                : 'bg-white text-gray-800 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-2xl rounded-bl-sm border border-gray-200 shadow-sm';
+            bubble.textContent = phrase;
+
+            wrapper.appendChild(senderLabel);
+            wrapper.appendChild(bubble);
+            safeChatMessages.appendChild(wrapper);
+            safeChatMessages.scrollTop = safeChatMessages.scrollHeight;
+        }
+
+        let chatCooldown = false;
+        safeChatButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (chatCooldown || !isTransportOpen()) return;
+                const phrase = btn.getAttribute('data-phrase');
+                if (!ALLOWED_SAFE_CHAT.includes(phrase)) return;
+
+                appendSafeChatMessage(phrase, true);
+                publishRoomPacket({ type: 'SAFE_CHAT', phrase: phrase });
+                chatCooldown = true;
+                setTimeout(() => { chatCooldown = false; }, 700);
+            });
+        });
+
+        function showScreen(screenName) {
+            screenStart.classList.add('hidden');
+            screenCodeOnly.classList.add('hidden');
+            screenGame.classList.add('hidden');
+
+            if (screenName === 'start') screenStart.classList.remove('hidden');
+            else if (screenName === 'code') { screenCodeOnly.classList.remove('hidden'); screenCodeOnly.classList.add('flex'); }
+            else if (screenName === 'game') { screenGame.classList.remove('hidden'); screenGame.classList.add('flex'); }
+        }
+
+        joinCodeInput.addEventListener('input', () => {
+            if (joinCodeInput.value.trim().length > 0) joinButtonWrapper.classList.remove('hidden');
+            else joinButtonWrapper.classList.add('hidden');
+        });
+        joinCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && joinCodeInput.value.trim().length > 0) btnJoinGame.click();
+        });
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            return code;
+        }
+
+        generatedCodeDisplay.addEventListener('click', () => {
+            if (!roomCode || generatedCodeDisplay.textContent === '...') return;
+            const tempInput = document.createElement('input');
+            tempInput.value = roomCode;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                hostStatusHint.textContent = 'Skopiowano kod do schowka!';
+                hostStatusHint.className = 'mt-3 text-xs text-emerald-600 font-semibold transition-opacity';
+                setTimeout(() => {
+                    if (!isPaired) {
+                        hostStatusHint.textContent = 'Kliknij kod, aby skopiować';
+                        hostStatusHint.className = 'mt-3 text-xs text-gray-400 font-medium transition-opacity';
+                    }
+                }, 2000);
+            } catch (err) {}
+            document.body.removeChild(tempInput);
+        });
+
+        function setupLocalChannel(code) {
+            const channelName = 'uno_room_' + code;
+            const storageMsgKey = 'uno_msg_' + code;
+
+            if ('BroadcastChannel' in window) {
+                bc = new BroadcastChannel(channelName);
+                bc.onmessage = (event) => { handleIncomingPacket(event.data, 'local'); };
+            }
+
+            window.addEventListener('storage', (event) => {
+                if (event.key === storageMsgKey && event.newValue) {
+                    try {
+                        const packet = JSON.parse(event.newValue);
+                        handleIncomingPacket(packet, 'local');
+                    } catch (e) {}
+                }
+            });
+        }
+
+        function connectMqttToRoom(code, onBrokerReady, onBrokerAllFailed) {
+            if (typeof mqtt === 'undefined') {
+                onBrokerAllFailed('Biblioteka sieciowa nie została załadowana.');
+                return;
+            }
+
+            let brokerAttemptIndex = activeBrokerIndex;
+            let attemptsCount = 0;
+
+            const tryBroker = (idx) => {
+                if (mqttClient) { try { mqttClient.end(true); } catch (e) {} mqttClient = null; }
+                mqttConnected = false;
+
+                const client = mqtt.connect(MQTT_BROKERS[idx], {
+                    clientId: clientId,
+                    clean: true,
+                    connectTimeout: 5500,
+                    reconnectPeriod: 2000,
+                    keepalive: 25
+                });
+                mqttClient = client;
+                let opened = false;
+
+                client.on('connect', () => {
+                    if (mqttClient !== client) return;
+                    opened = true;
+                    mqttConnected = true;
+                    activeBrokerIndex = idx;
+                    client.subscribe(TOPIC_PREFIX + code, { qos: 1 }, (err) => {
+                        if (err) { onBrokerAllFailed('Błąd subskrypcji pokoju.'); return; }
+                        if (onBrokerReady) onBrokerReady();
+                    });
+                });
+
+                client.on('message', (topic, messageBuffer) => {
+                    if (mqttClient !== client || topic !== TOPIC_PREFIX + code) return;
+                    try {
+                        const packet = JSON.parse(messageBuffer.toString());
+                        handleIncomingPacket(packet, 'mqtt');
+                    } catch (e) {}
+                });
+
+                client.on('error', () => {
+                    if (mqttClient !== client) return;
+                    if (!opened) {
+                        try { client.end(true); } catch (e) {}
+                        attemptsCount++;
+                        if (attemptsCount < MQTT_BROKERS.length) tryBroker((idx + 1) % MQTT_BROKERS.length);
+                        else if (!isPaired) onBrokerAllFailed('Brak połączenia z serwerem gry.');
+                    }
+                });
+            };
+
+            tryBroker(brokerAttemptIndex);
+        }
+
+        function handleIncomingPacket(packet, sourceMode) {
+            if (!packet || packet.sender === clientId || packet.room !== roomCode) return;
+            if (packet.to && packet.to !== clientId) return;
+
+            const data = packet.payload;
+            if (!data || typeof data !== 'object') return;
+
+            if (mySymbol === 'X' && data.type === 'JOIN_REQUEST') {
+                if (!isPaired) {
+                    isPaired = true;
+                    transportMode = sourceMode;
+                    opponentClientId = packet.sender;
+                    opponentName = data.name || '';
+                    initGame();
+                    publishRoomPacket({
+                        type: 'WELCOME_SYNC',
+                        state: getGameStateSnapshot(),
+                        name: myNameInput.value.trim()
+                    }, sourceMode);
+                    startHeartbeat();
+                    updateOpponentNameUI();
+                    startSyncedGameUI();
+                }
+                return;
+            }
+
+            if (mySymbol === 'O' && !isPaired && data.type === 'WELCOME_SYNC') {
+                isPaired = true;
+                transportMode = sourceMode;
+                opponentClientId = packet.sender;
+                opponentName = data.name || '';
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                resetJoinButton();
+                startHeartbeat();
+                sendMyName();
+
+                applyGameStateSnapshot(data.state);
+                updateOpponentNameUI();
+                startSyncedGameUI();
+                return;
+            }
+
+            if (isPaired && packet.sender === opponentClientId) {
+                handleIncomingGameData(data);
+            }
+        }
+
+        function startHeartbeat() {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = setInterval(() => {
+                if (isTransportOpen()) publishRoomPacket({ type: 'PING' });
+            }, 5000);
+        }
+
+        btnCreateCode.addEventListener('click', () => {
+            btnCreateCode.disabled = true;
+            cleanupConnections();
+            mySymbol = 'X';
+            roomCode = generateRoomCode();
+            generatedCodeDisplay.textContent = '...';
+            hostStatusHint.textContent = 'Rejestrowanie pokoju...';
+            showScreen('code');
+
+            setupLocalChannel(roomCode);
+            connectMqttToRoom(roomCode, () => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = 'Kliknij kod, aby skopiować';
+                btnCreateCode.disabled = false;
+            }, (errMsg) => {
+                generatedCodeDisplay.textContent = roomCode;
+                hostStatusHint.textContent = errMsg;
+                hostStatusHint.className = 'mt-3 text-xs text-red-500 font-semibold transition-opacity';
+                showToast(errMsg);
+                btnCreateCode.disabled = false;
+            });
+        });
+
+        btnJoinGame.addEventListener('click', () => {
+            const rawCode = joinCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (!rawCode) return;
+
+            cleanupConnections();
+            btnJoinGame.disabled = true;
+            btnJoinGame.textContent = 'Łączenie...';
+            mySymbol = 'O';
+            roomCode = rawCode;
+
+            setupLocalChannel(roomCode);
+            const sendJoinRequest = () => {
+                if (!isPaired) publishRoomPacket({ type: 'JOIN_REQUEST', name: myNameInput.value.trim() });
+            };
+
+            sendJoinRequest();
+            connectMqttToRoom(roomCode, () => {
+                sendJoinRequest();
+                joinPingInterval = setInterval(() => {
+                    if (!isPaired) sendJoinRequest();
+                    else clearInterval(joinPingInterval);
+                }, 1200);
+            }, (errMsg) => {
+                clearInterval(joinPingInterval);
+                clearTimeout(joinTimeoutTimer);
+                showToast(errMsg);
+                resetJoinButton();
+            });
+
+            joinTimeoutTimer = setTimeout(() => {
+                clearInterval(joinPingInterval);
+                if (!isPaired) {
+                    showToast('Nie znaleziono pokoju o kodzie: ' + roomCode);
+                    resetJoinButton();
+                    cleanupConnections();
+                }
+            }, 12000);
+        });
+
+        function resetJoinButton() {
+            btnJoinGame.disabled = false;
+            btnJoinGame.textContent = 'Dołącz';
+        }
+
+        function createShuffledDeck() {
+            const cards = [];
+            let uid = 1;
+            const makeCard = (color, value, type) => ({ id: 'c_' + (uid++) + '_' + Math.random().toString(36).slice(2, 6), color, value, type });
+
+            for (const color of COLORS) {
+                cards.push(makeCard(color, '0', 'number'));
+                const values = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+2', 'REV', 'SKIP'];
+                for (const val of values) {
+                    cards.push(makeCard(color, val, val.startsWith('+') || val === 'REV' || val === 'SKIP' ? 'action' : 'number'));
+                    cards.push(makeCard(color, val, val.startsWith('+') || val === 'REV' || val === 'SKIP' ? 'action' : 'number'));
+                }
+            }
+
+            for (let i = 0; i < 4; i++) {
+                cards.push(makeCard('wild', 'WILD', 'wild'));
+                cards.push(makeCard('wild', '+4', 'wild4'));
+            }
+
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            return cards;
+        }
+
+        function ensureDeckHasCards(needed = 1) {
+            while (deck.length < needed) {
+                if (discardPile.length <= 1) break;
+                const topCard = discardPile[discardPile.length - 1];
+                const recycled = discardPile.slice(0, -1).map(c => ({
+                    ...c,
+                    color: (c.type === 'wild' || c.type === 'wild4') ? 'wild' : c.color
+                }));
+                for (let i = recycled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [recycled[i], recycled[j]] = [recycled[j], recycled[i]];
+                }
+                deck = recycled.concat(deck);
+                discardPile = [topCard];
+            }
+        }
+
+        function drawFromDeck(count) {
+            const drawn = [];
+            for (let i = 0; i < count; i++) {
+                ensureDeckHasCards(1);
+                if (deck.length > 0) drawn.push(deck.pop());
+            }
+            return drawn;
+        }
+
+        function initGame() {
+            deck = createShuffledDeck();
+            handX = drawFromDeck(7);
+            handO = drawFromDeck(7);
+
+            let firstCard = null;
+            while (deck.length > 0) {
+                const candidate = deck.pop();
+                if (candidate.type !== 'wild4') {
+                    firstCard = candidate;
+                    break;
+                }
+                deck.unshift(candidate);
+            }
+            if (!firstCard) firstCard = { id: 'init_1', color: 'red', value: '5', type: 'number' };
+
+            discardPile = [firstCard];
+            activeColor = firstCard.color === 'wild' ? 'red' : firstCard.color;
+            currentTurn = 'X';
+            gameOver = false;
+            pendingWildCard = null;
+
+            if (firstCard.value === 'SKIP' || firstCard.value === 'REV') {
+                currentTurn = 'O';
+            } else if (firstCard.value === '+2') {
+                handO.push(...drawFromDeck(2));
+                currentTurn = 'X';
+            }
+        }
+
+        function getGameStateSnapshot() {
+            return {
+                deck,
+                discardPile,
+                handX,
+                handO,
+                activeColor,
+                currentTurn,
+                gameOver
+            };
+        }
+
+        function applyGameStateSnapshot(snap) {
+            if (!snap) return;
+            deck = snap.deck || [];
+            discardPile = snap.discardPile || [];
+            handX = snap.handX || [];
+            handO = snap.handO || [];
+            activeColor = snap.activeColor || 'red';
+            currentTurn = snap.currentTurn || 'X';
+            gameOver = Boolean(snap.gameOver);
+            pendingWildCard = null;
+            colorPickerModal.classList.add('hidden');
+        }
+
+        function syncAndRender() {
+            publishRoomPacket({
+                type: 'STATE_SYNC',
+                state: getGameStateSnapshot()
+            });
+            renderUNO();
+        }
+
+        function canPlayCard(card) {
+            if (gameOver || currentTurn !== mySymbol) return false;
+            if (card.type === 'wild' || card.type === 'wild4') return true;
+            const topCard = discardPile[discardPile.length - 1];
+            if (!topCard) return true;
+            if (card.color === activeColor) return true;
+            if (topCard.value && card.value === topCard.value) return true;
+            return false;
+        }
+
+        function playCard(cardId, chosenWildColor = null) {
+            if (gameOver || currentTurn !== mySymbol) return;
+            const myHand = mySymbol === 'X' ? handX : handO;
+            const idx = myHand.findIndex(c => c.id === cardId);
+            if (idx === -1) return;
+            const card = myHand[idx];
+            if (!canPlayCard(card)) return;
+
+            if ((card.type === 'wild' || card.type === 'wild4') && !chosenWildColor) {
+                pendingWildCard = card;
+                colorPickerModal.classList.remove('hidden');
+                return;
+            }
+
+            myHand.splice(idx, 1);
+
+            const playedCard = { ...card };
+            if (card.type === 'wild' || card.type === 'wild4') {
+                playedCard.color = chosenWildColor;
+                activeColor = chosenWildColor;
+            } else {
+                activeColor = card.color;
+            }
+
+            discardPile.push(playedCard);
+
+            if (myHand.length === 0) {
+                gameOver = true;
+                syncAndRender();
+                return;
+            }
+
+            const opponentSymbol = mySymbol === 'X' ? 'O' : 'X';
+            const oppHand = opponentSymbol === 'X' ? handX : handO;
+
+            if (card.value === '+2') {
+                oppHand.push(...drawFromDeck(2));
+                currentTurn = mySymbol;
+            } else if (card.type === 'wild4') {
+                oppHand.push(...drawFromDeck(4));
+                currentTurn = mySymbol;
+            } else if (card.value === 'SKIP' || card.value === 'REV') {
+                currentTurn = mySymbol;
+            } else {
+                currentTurn = opponentSymbol;
+            }
+
+            syncAndRender();
+        }
+
+        pickColorButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const color = btn.getAttribute('data-color');
+                colorPickerModal.classList.add('hidden');
+                if (pendingWildCard) {
+                    const card = pendingWildCard;
+                    pendingWildCard = null;
+                    playCard(card.id, color);
+                }
+            });
+        });
+
+        btnDrawCard.addEventListener('click', () => {
+            if (gameOver || currentTurn !== mySymbol) return;
+            const drawn = drawFromDeck(1);
+            if (drawn.length > 0) {
+                if (mySymbol === 'X') handX.push(...drawn);
+                else handO.push(...drawn);
+            }
+            currentTurn = mySymbol === 'X' ? 'O' : 'X';
+            syncAndRender();
+        });
+
+        btnPlayAgain.addEventListener('click', () => {
+            initGame();
+            gameOverPanel.classList.add('hidden');
+            syncAndRender();
+            showToast('Rozpoczęto nową grę!', false);
+        });
+
+        function handleIncomingGameData(data) {
+            if (!data || typeof data !== 'object') return;
+
+            switch (data.type) {
+                case 'NAME_UPDATE':
+                    opponentName = data.name || '';
+                    updateOpponentNameUI();
+                    break;
+                case 'SAFE_CHAT':
+                    if (typeof data.phrase === 'string') appendSafeChatMessage(data.phrase, false);
+                    break;
+                case 'STATE_SYNC':
+                    applyGameStateSnapshot(data.state);
+                    renderUNO();
+                    break;
+            }
+        }
+
+        function startSyncedGameUI() {
+            gameOverPanel.classList.add('hidden');
+            safeChatMessages.innerHTML = `<div class="text-xs text-gray-400 text-center my-auto select-none">Kliknij słowo poniżej, aby wysłać</div>`;
+            showScreen('game');
+            renderUNO();
+        }
+
+        function renderCornerText(val, isSmall) {
+            if (val === '6' || val === '9') {
+                return `<span class="${isSmall ? '' : 'corner-underline'}">${val}</span>`;
+            }
+            if (val === 'SKIP') return '⊘';
+            if (val === 'REV') return '⇄';
+            if (val === 'WILD') return 'W';
+            return val;
+        }
+
+        function renderCenterContent(card, isSmall) {
+            if (card.type === 'wild4') {
+                const sz = isSmall ? 'w-4 h-4' : 'w-10 h-11 sm:w-12 sm:h-14';
+                return `
+                    <div class="flex flex-col items-center justify-center gap-1">
+                        <div class="quad-colors" style="${isSmall ? 'width:18px;height:18px;border-width:1px;' : ''}">
+                            <span style="background:#d91e2a"></span>
+                            <span style="background:#1b66d1"></span>
+                            <span style="background:#f5c400"></span>
+                            <span style="background:#1ea846"></span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (card.type === 'wild') {
+                return `
+                    <div class="quad-colors" style="${isSmall ? 'width:18px;height:18px;border-width:1px;' : ''}">
+                        <span style="background:#d91e2a"></span>
+                        <span style="background:#1b66d1"></span>
+                        <span style="background:#f5c400"></span>
+                        <span style="background:#1ea846"></span>
+                    </div>
+                `;
+            }
+
+            const fontSize = isSmall ? 'text-xs' : (card.value === '+2' ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-5xl');
+            let displayVal = card.value;
+            if (card.value === 'SKIP') displayVal = '⊘';
+            else if (card.value === 'REV') displayVal = '⇄';
+            else if (card.value === '6' || card.value === '9') {
+                displayVal = `<span class="${isSmall ? '' : 'underline-digit'}">${card.value}</span>`;
+            }
+
+            return `<span class="uno-center-mark ${fontSize}">${displayVal}</span>`;
+        }
+
+        function createCardElement(card, { playable = false, isSmall = false } = {}) {
+            const el = document.createElement('div');
+            const colorClass = 'card-' + (card.color || 'wild');
+            el.className = `uno-card ${colorClass} ${playable ? 'playable' : 'unplayable'}`;
+
+            if (isSmall) {
+                el.style.width = '36px';
+                el.style.height = '54px';
+                el.style.borderRadius = '6px';
+                el.style.padding = '2px';
+            }
+
+            const corner = renderCornerText(card.value, isSmall);
+            const cornersHtml = isSmall
+                ? ''
+                : `<span class="uno-corner uno-corner-tl">${corner}</span><span class="uno-corner uno-corner-br">${corner}</span>`;
+
+            const ellipseStyle = isSmall ? 'width:84%;height:68%;' : '';
+
+            el.innerHTML = `
+                <div class="uno-card-inner">
+                    ${cornersHtml}
+                    <div class="uno-ellipse" style="${ellipseStyle}">
+                        ${renderCenterContent(card, isSmall)}
+                    </div>
+                </div>
+            `;
+            return el;
+        }
+
+        function createCardBackElement(isSmall = false) {
+            const el = document.createElement('div');
+            el.className = 'uno-card uno-card-back';
+            if (isSmall) {
+                el.style.width = '36px';
+                el.style.height = '54px';
+                el.style.borderRadius = '6px';
+                el.style.padding = '2px';
+            }
+            el.innerHTML = `
+                <div class="uno-card-inner">
+                    <div class="uno-back-oval">
+                        <span class="uno-back-logo ${isSmall ? 'text-[9px]' : 'text-xl sm:text-2xl'}">UNO</span>
+                    </div>
+                </div>
+            `;
+            return el;
+        }
+
+        function renderUNO() {
+            const myHand = mySymbol === 'X' ? handX : handO;
+            const oppHand = mySymbol === 'X' ? handO : handX;
+            const isMyTurn = !gameOver && currentTurn === mySymbol;
+
+            if (gameOver) {
+                turnIndicator.textContent = 'Koniec partii';
+                turnIndicator.className = 'px-4 py-1.5 rounded-full font-bold text-sm sm:text-base bg-gray-900 text-white border border-white/20';
+            } else if (isMyTurn) {
+                turnIndicator.textContent = 'Twój ruch';
+                turnIndicator.className = 'px-4 py-1.5 rounded-full font-bold text-sm sm:text-base bg-emerald-400 text-gray-950 border border-emerald-200';
+            } else {
+                const oppLabel = opponentName.trim() || 'przeciwnika';
+                turnIndicator.textContent = `Ruch ${oppLabel}...`;
+                turnIndicator.className = 'px-4 py-1.5 rounded-full font-bold text-sm sm:text-base bg-amber-300 text-gray-950 border border-amber-100';
+            }
+
+            activeColorBadge.textContent = COLOR_LABELS[activeColor] || activeColor;
+            activeColorBadge.className = `px-3 py-0.5 rounded-full text-xs font-extrabold uppercase text-white shadow-xs ${COLOR_BADGE_CLASSES[activeColor] || 'bg-gray-700'}`;
+
+            opponentCardsBadge.textContent = `Przeciwnik: ${oppHand.length} ${oppHand.length === 1 ? 'karta' : (oppHand.length >= 2 && oppHand.length <= 4 ? 'karty' : 'kart')}`;
+            myCardsCountEl.textContent = `${myHand.length} ${myHand.length === 1 ? 'karta' : (myHand.length >= 2 && myHand.length <= 4 ? 'karty' : 'kart')}`;
+
+            btnDrawCard.disabled = !isMyTurn;
+            deckCountLabel.textContent = `Dobierz (${deck.length})`;
+
+            opponentHandBacks.innerHTML = '';
+            for (let i = 0; i < oppHand.length; i++) {
+                opponentHandBacks.appendChild(createCardBackElement(true));
+            }
+
+            discardPileEl.innerHTML = '';
+            const topCard = discardPile[discardPile.length - 1];
+            if (topCard) {
+                discardPileEl.appendChild(createCardElement(topCard, { playable: false }));
+            }
+
+            myHandEl.innerHTML = '';
+            myHand.forEach(card => {
+                const allowed = canPlayCard(card);
+                const cardEl = createCardElement(card, { playable: allowed });
+                if (allowed) {
+                    cardEl.addEventListener('click', () => playCard(card.id));
+                }
+                myHandEl.appendChild(cardEl);
+            });
+
+            if (gameOver) {
+                const iWon = myHand.length === 0;
+                gameOverTitle.textContent = iWon ? 'Wygrałeś!' : 'Przegrałeś!';
+                gameOverSubtitle.textContent = iWon
+                    ? 'Pozbyłeś się wszystkich kart jako pierwszy.'
+                    : `${opponentName.trim() || 'Przeciwnik'} wyłożył ostatnią kartę.`;
+                gameOverPanel.classList.remove('hidden');
+            } else {
+                gameOverPanel.classList.add('hidden');
+            }
+        }
+
+        window.addEventListener('beforeunload', () => { cleanupConnections(); });
+    </script>
+</body>
+</html>
