@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pasjans Klondike</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --card-width: 96px;
+            --card-height: 134px;
+            --card-radius: 8px;
+            --tableau-offset-down: 16px;
+            --tableau-offset-up: 28px;
+            --bg-gradient: radial-gradient(circle at 50% 25%, #1d8a4e 0%, #115c33 55%, #09381e 100%);
+        }
+
+        @media (max-width: 820px) {
+            :root {
+                --card-width: 12.6vw;
+                --card-height: 17.6vw;
+                --card-radius: 5px;
+                --tableau-offset-down: 11px;
+                --tableau-offset-up: 22px;
+            }
+        }
+
+        /* Bogate motywy stołu sukiennego (domyślnie szmaragdowa zieleń, nigdy białe tło) */
+        html, body {
+            background-color: #0b4726;
+        }
+
+        body.theme-green {
+            background-color: #0b4726;
+            --bg-gradient: radial-gradient(circle at 50% 25%, #1f9253 0%, #126136 55%, #08361d 100%);
+        }
+        body.theme-blue {
+            background-color: #0d2b4d;
+            --bg-gradient: radial-gradient(circle at 50% 25%, #1e64a8 0%, #123f6e 55%, #09213b 100%);
+        }
+        body.theme-crimson {
+            background-color: #420e17;
+            --bg-gradient: radial-gradient(circle at 50% 25%, #8f2436 0%, #591420 55%, #300910 100%);
+        }
+        body.theme-dark {
+            background-color: #13171d;
+            --bg-gradient: radial-gradient(circle at 50% 25%, #2d333b 0%, #1c2128 55%, #0d1117 100%);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-image: var(--bg-gradient);
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            transition: background-color 0.4s ease;
+        }
+
+        /* Subtelna faktura sukna karcianego z winietą */
+        .felt-surface {
+            background-image: 
+                radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0),
+                radial-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 0),
+                var(--bg-gradient);
+            background-size: 18px 18px, 18px 18px, 100% 100%;
+            background-position: 0 0, 9px 9px, 0 0;
+        }
+
+        /* Puste sloty na karty */
+        .slot {
+            width: var(--card-width);
+            height: var(--card-height);
+            border-radius: var(--card-radius);
+            border: 2px solid rgba(255, 255, 255, 0.24);
+            background-color: rgba(0, 0, 0, 0.18);
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+
+        .slot.highlight-target {
+            border-color: #ffd54f;
+            background-color: rgba(255, 213, 79, 0.22);
+            box-shadow: 0 0 18px rgba(255, 213, 79, 0.65), inset 0 0 10px rgba(255, 213, 79, 0.3);
+        }
+
+        .foundation-slot::after {
+            content: attr(data-suit);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: calc(var(--card-width) * 0.44);
+            color: rgba(255, 255, 255, 0.18);
+            pointer-events: none;
+        }
+
+        /* Wyraźna biała karta do gry */
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            border-radius: var(--card-radius);
+            position: absolute;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.22);
+            box-sizing: border-box;
+            transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: calc(var(--card-width) * 0.055);
+            will-change: transform, left, top;
+        }
+
+        .card:hover:not(.face-down):not(.dragging) {
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.85);
+        }
+
+        .card.red {
+            color: #d11a2a;
+        }
+
+        .card.black {
+            color: #18181b;
+        }
+
+        /* Rewersy kart (4 wzory) */
+        .card.face-down {
+            border: 3px solid #ffffff;
+            cursor: default;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .card.face-down::before {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border: 1.5px solid rgba(255, 255, 255, 0.55);
+            border-radius: calc(var(--card-radius) - 3px);
+        }
+
+        /* Rewers 1: Klasyczny Szafirowy */
+        body.back-classic .card.face-down {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%);
+        }
+        body.back-classic .card.face-down::before {
+            background-image: 
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.14) 0px, rgba(255,255,255,0.14) 2px, transparent 2px, transparent 7px),
+                repeating-linear-gradient(-45deg, rgba(255,255,255,0.14) 0px, rgba(255,255,255,0.14) 2px, transparent 2px, transparent 7px);
+        }
+
+        /* Rewers 2: Królewska Czerwień */
+        body.back-red .card.face-down {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 55%, #7f1d1d 100%);
+        }
+        body.back-red .card.face-down::before {
+            background-image: radial-gradient(rgba(255, 215, 0, 0.28) 1.5px, transparent 1.5px);
+            background-size: 8px 8px;
+        }
+
+        /* Rewers 3: Szmaragdowy */
+        body.back-emerald .card.face-down {
+            background: linear-gradient(135deg, #059669 0%, #065f46 55%, #064e3b 100%);
+        }
+        body.back-emerald .card.face-down::before {
+            background-image: 
+                linear-gradient(30deg, rgba(255,255,255,0.12) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.12) 87.5%),
+                linear-gradient(150deg, rgba(255,255,255,0.12) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.12) 87.5%);
+            background-size: 12px 20px;
+        }
+
+        /* Rewers 4: Złota Korona */
+        body.back-gold .card.face-down {
+            background: linear-gradient(135deg, #b45309 0%, #78350f 50%, #451a03 100%);
+        }
+        body.back-gold .card.face-down::before {
+            border-color: #fcd34d;
+            background-image: repeating-radial-gradient(circle at 50% 50%, rgba(252, 211, 77, 0.22) 0, rgba(252, 211, 77, 0.22) 2px, transparent 2px, transparent 8px);
+        }
+
+        /* Podświetlenie podpowiedzi */
+        .card.hint-glow, .slot.hint-glow {
+            animation: hintPulse 0.9s infinite alternate ease-in-out;
+            z-index: 60 !important;
+        }
+
+        @keyframes hintPulse {
+            0% {
+                box-shadow: 0 0 8px 2px #ffd54f, 0 0 16px 4px rgba(255, 213, 79, 0.65);
+                transform: translateY(-2px) scale(1.02);
+            }
+            100% {
+                box-shadow: 0 0 18px 6px #ffb300, 0 0 32px 10px rgba(255, 179, 0, 0.85);
+                transform: translateY(-6px) scale(1.04);
+            }
+        }
+
+        /* Przeciągana karta */
+        .card.dragging {
+            transition: none !important;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.5), 0 8px 14px rgba(0, 0, 0, 0.35);
+            cursor: grabbing;
+            pointer-events: none;
+            transform: scale(1.03);
+        }
+
+        /* Wnętrze karty */
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            line-height: 1;
+            z-index: 2;
+        }
+
+        .card-rank-top {
+            font-weight: 800;
+            font-size: calc(var(--card-width) * 0.23);
+            letter-spacing: -0.04em;
+        }
+
+        .card-suit-top {
+            font-size: calc(var(--card-width) * 0.21);
+        }
+
+        .card-center-art {
+            position: absolute;
+            inset: calc(var(--card-width) * 0.24) calc(var(--card-width) * 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .card-pip-large {
+            font-size: calc(var(--card-width) * 0.54);
+            line-height: 1;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.08));
+        }
+
+        .card-footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            line-height: 1;
+            transform: rotate(180deg);
+            z-index: 2;
+        }
+
+        /* Kolumny Tableau */
+        .tableau-col {
+            width: var(--card-width);
+            min-height: calc(var(--card-height) * 3.7);
+            position: relative;
+        }
+
+        /* Canvas zwycięstwa */
+        #victory-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+        /* Paski narzędzi (górny i dolny) */
+        .glass-bar {
+            background: rgba(8, 22, 14, 0.74);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        .action-btn {
+            transition: all 0.14s ease;
+            border-radius: 8px;
+        }
+        .action-btn:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.14);
+        }
+        .action-btn:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+        .action-btn:disabled {
+            opacity: 0.38;
+            cursor: not-allowed;
+        }
+
+        /* Menu rozwijane w górę dla dolnego paska */
+        .dropup-menu {
+            transform-origin: bottom left;
+            animation: dropupIn 0.14s ease-out;
+        }
+        @keyframes dropupIn {
+            from { opacity: 0; transform: translateY(6px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+    </style>
+</head>
+<body class="felt-surface theme-green back-classic flex flex-col justify-between items-center text-white">
+
+    <!-- Górny pasek: Tytuł gry, Wynik, Czas, Ruchy i Dźwięk -->
+    <header class="w-full glass-bar border-b px-3 py-2 sm:px-6 z-40 shadow-md">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            
+            <!-- Tytuł gry -->
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow text-slate-950 font-black text-base">
+                    ♠
+                </div>
+                <div class="leading-tight">
+                    <h1 class="text-sm sm:text-base font-extrabold tracking-wide text-amber-300">Pasjans Klondike</h1>
+                    <div class="text-[11px] text-white/75 font-medium" id="mode-badge">Dobierz 1 • Standardowa</div>
+                </div>
+            </div>
+
+            <!-- Liczniki: Wynik, Czas, Ruchy -->
+            <div class="flex items-center gap-3 sm:gap-6 bg-black/40 px-4 py-1.5 rounded-xl border border-white/10 text-xs sm:text-sm shadow-inner">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-white/60">Wynik:</span>
+                    <span id="score-display" class="font-bold text-amber-300 tabular-nums">0</span>
+                </div>
+                <div class="w-px h-4 bg-white/15"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-white/60">Czas:</span>
+                    <span id="time-display" class="font-bold text-white tabular-nums">00:00</span>
+                </div>
+                <div class="w-px h-4 bg-white/15"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-white/60">Ruchy:</span>
+                    <span id="moves-display" class="font-bold text-white tabular-nums">0</span>
+                </div>
+            </div>
+
+            <!-- Przełącznik dźwięku -->
+            <button id="btn-sound" class="action-btn p-2 text-white/90 bg-white/5 border border-white/10" title="Włącz lub wyłącz dźwięk">
+                <svg id="icon-sound-on" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                <svg id="icon-sound-off" class="w-4 h-4 hidden text-rose-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/><path stroke-linecap="round" stroke-linejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Dymek z komunikatem -->
+    <div id="toast-msg" class="fixed top-16 left-1/2 -translate-x-1/2 bg-slate-900/95 text-amber-300 border border-amber-400/40 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold shadow-2xl opacity-0 pointer-events-none transition-opacity duration-200 z-50">
+        Komunikat
+    </div>
+
+    <!-- Główny stół do gry -->
+    <main id="game-board" class="w-full max-w-5xl px-2 sm:px-6 pt-4 sm:pt-6 pb-6 flex-1 flex flex-col gap-5 sm:gap-7 relative">
+        
+        <!-- Górna sekcja: Talia rezerwowa (Stock), Stos odrzucony (Waste) + 4 Pola bazowe (Foundations) -->
+        <section class="grid grid-cols-7 gap-1.5 sm:gap-4 justify-items-center">
+            <!-- Stock -->
+            <div id="stock-slot" class="slot cursor-pointer flex items-center justify-center group" title="Kliknij, aby dobrać karty">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-full border-2 border-white/25 flex items-center justify-center group-hover:border-white/60 transition-colors">
+                    <span class="text-xl sm:text-2xl text-white/50 group-hover:text-white/90">↻</span>
+                </div>
+            </div>
+
+            <!-- Waste -->
+            <div id="waste-slot" class="slot"></div>
+
+            <!-- Pusta kolumna oddzielająca -->
+            <div class="w-full"></div>
+
+            <!-- 4 Pola bazowe -->
+            <div id="foundation-0" class="slot foundation-slot" data-foundation="0" data-suit="♠"></div>
+            <div id="foundation-1" class="slot foundation-slot" data-foundation="1" data-suit="♥"></div>
+            <div id="foundation-2" class="slot foundation-slot" data-foundation="2" data-suit="♣"></div>
+            <div id="foundation-3" class="slot foundation-slot" data-foundation="3" data-suit="♦"></div>
+        </section>
+
+        <!-- Dolna sekcja: 7 kolumn roboczych (Tableau) -->
+        <section class="grid grid-cols-7 gap-1.5 sm:gap-4 justify-items-center flex-1">
+            <div id="tableau-0" class="tableau-col slot" data-tableau="0"></div>
+            <div id="tableau-1" class="tableau-col slot" data-tableau="1"></div>
+            <div id="tableau-2" class="tableau-col slot" data-tableau="2"></div>
+            <div id="tableau-3" class="tableau-col slot" data-tableau="3"></div>
+            <div id="tableau-4" class="tableau-col slot" data-tableau="4"></div>
+            <div id="tableau-5" class="tableau-col slot" data-tableau="5"></div>
+            <div id="tableau-6" class="tableau-col slot" data-tableau="6"></div>
+        </section>
+    </main>
+
+    <!-- Dolny pasek akcji: Nowa gra, Cofnij, Podpowiedź, Autoukończenie, Motywy, Statystyki -->
+    <footer class="w-full glass-bar border-t px-2 py-2.5 sm:px-6 z-40 shadow-lg">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-center sm:justify-between gap-2">
+            
+            <!-- Lewa grupa: Nowa gra + Cofnij + Podpowiedź -->
+            <div class="flex items-center gap-1.5 sm:gap-2.5 relative">
+                <!-- Przycisk rozwijany w górę: Nowa gra -->
+                <div class="relative">
+                    <button id="btn-new-menu" class="action-btn bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 shadow flex items-center gap-1.5 border border-emerald-400/30">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        <span>Nowa gra</span>
+                        <svg class="w-3.5 h-3.5 opacity-80" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+                    </button>
+
+                    <!-- Menu wyboru trybu Nowej Gry (rozwijane w górę) -->
+                    <div id="new-game-dropdown" class="hidden dropup-menu absolute bottom-full left-0 mb-2 w-64 bg-slate-900/95 border border-white/15 rounded-xl shadow-2xl p-2 z-50 text-sm">
+                        <div class="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-400">Rozdanie do wygrania</div>
+                        <button data-action="new" data-draw="1" data-winnable="true" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 flex items-center justify-between transition-colors">
+                            <span>🏆 Dobierz 1 kartę</span>
+                            <span class="text-xs text-emerald-400 font-semibold">Polecane</span>
+                        </button>
+                        <button data-action="new" data-draw="3" data-winnable="true" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 flex items-center justify-between transition-colors">
+                            <span>🏆 Dobierz 3 karty</span>
+                            <span class="text-xs text-amber-300/80">Wyzwanie</span>
+                        </button>
+
+                        <div class="my-1.5 border-t border-white/10"></div>
+                        <div class="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">Losowe tasowanie</div>
+                        <button data-action="new" data-draw="1" data-winnable="false" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 flex items-center justify-between transition-colors">
+                            <span>🎲 Losowe – Dobierz 1</span>
+                        </button>
+                        <button data-action="new" data-draw="3" data-winnable="false" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 flex items-center justify-between transition-colors">
+                            <span>🎲 Losowe – Dobierz 3</span>
+                        </button>
+
+                        <div class="my-1.5 border-t border-white/10"></div>
+                        <button id="btn-restart-deal" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sky-300 flex items-center gap-2 transition-colors">
+                            <span>🔁</span>
+                            <span>Powtórz obecne rozdanie</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button id="btn-undo" disabled class="action-btn px-3 py-2 text-xs sm:text-sm font-semibold flex items-center gap-1.5 bg-white/10 border border-white/10" title="Cofnij ostatni ruch (Ctrl+Z)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                    <span>Cofnij</span>
+                </button>
+
+                <button id="btn-hint" class="action-btn px-3 py-2 text-xs sm:text-sm font-semibold flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30" title="Pokaż podpowiedź (H)">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    <span>Podpowiedź</span>
+                </button>
+
+                <button id="btn-autocomplete" class="hidden action-btn bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-extrabold text-xs sm:text-sm px-3.5 py-2 shadow-lg animate-pulse flex items-center gap-1.5">
+                    <span>✨</span>
+                    <span>Autoukończenie</span>
+                </button>
+            </div>
+
+            <!-- Środkowa wskazówka (desktop) -->
+            <div class="text-[11px] text-white/50 hidden lg:block">
+                Podwójne kliknięcie lub PPM przenosi kartę na stos bazowy
+            </div>
+
+            <!-- Prawa grupa: Motywy + Statystyki -->
+            <div class="flex items-center gap-1.5 sm:gap-2.5">
+                <button id="btn-settings" class="action-btn px-3 py-2 text-xs sm:text-sm font-semibold flex items-center gap-1.5 bg-white/10 border border-white/10 text-white/95" title="Motywy stołu, rewersy i punktacja">
+                    <svg class="w-4 h-4 text-amber-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                    <span>Motywy</span>
+                </button>
+
+                <button id="btn-stats" class="action-btn px-3 py-2 text-xs sm:text-sm font-semibold flex items-center gap-1.5 bg-white/10 border border-white/10 text-white/95" title="Twoje statystyki gier">
+                    <svg class="w-4 h-4 text-sky-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span>Statystyki</span>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Canvas do animacji kaskady kart po zwycięstwie -->
+    <canvas id="victory-canvas"></canvas>
+
+    <!-- Modal: Motywy i Opcje -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-white/15 rounded-2xl max-w-md w-full p-6 shadow-2xl text-white">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-5">
+                <h3 class="text-lg font-bold text-amber-300 flex items-center gap-2">
+                    <span>🎨</span> Motywy i Zasady
+                </h3>
+                <button id="close-settings" class="text-white/60 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+
+            <!-- Wybór koloru stołu -->
+            <div class="mb-5">
+                <label class="block text-xs font-bold uppercase tracking-wider text-white/60 mb-2.5">Kolor stołu sukiennego</label>
+                <div class="grid grid-cols-4 gap-2.5">
+                    <button data-theme="green" class="theme-opt h-12 rounded-xl border-2 border-amber-400 bg-gradient-to-br from-emerald-600 to-emerald-950 flex items-center justify-center text-xs font-semibold shadow">Szmaragd</button>
+                    <button data-theme="blue" class="theme-opt h-12 rounded-xl border-2 border-white/15 bg-gradient-to-br from-sky-600 to-blue-950 flex items-center justify-center text-xs font-semibold shadow">Szafir</button>
+                    <button data-theme="crimson" class="theme-opt h-12 rounded-xl border-2 border-white/15 bg-gradient-to-br from-rose-700 to-rose-950 flex items-center justify-center text-xs font-semibold shadow">Burgund</button>
+                    <button data-theme="dark" class="theme-opt h-12 rounded-xl border-2 border-white/15 bg-gradient-to-br from-slate-700 to-slate-950 flex items-center justify-center text-xs font-semibold shadow">Grafit</button>
+                </div>
+            </div>
+
+            <!-- Wybór rewersu kart -->
+            <div class="mb-5">
+                <label class="block text-xs font-bold uppercase tracking-wider text-white/60 mb-2.5">Rewers kart</label>
+                <div class="grid grid-cols-4 gap-2.5">
+                    <button data-back="classic" class="back-opt h-14 rounded-lg border-2 border-amber-400 bg-gradient-to-br from-sky-500 to-blue-800 flex items-center justify-center text-[11px] font-bold shadow">Klasyczny</button>
+                    <button data-back="red" class="back-opt h-14 rounded-lg border-2 border-white/15 bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center text-[11px] font-bold shadow">Czerwony</button>
+                    <button data-back="emerald" class="back-opt h-14 rounded-lg border-2 border-white/15 bg-gradient-to-br from-emerald-600 to-emerald-900 flex items-center justify-center text-[11px] font-bold shadow">Zielony</button>
+                    <button data-back="gold" class="back-opt h-14 rounded-lg border-2 border-white/15 bg-gradient-to-br from-amber-600 to-amber-950 flex items-center justify-center text-[11px] font-bold shadow">Złoty</button>
+                </div>
+            </div>
+
+            <!-- Tryb punktacji -->
+            <div class="mb-6">
+                <label class="block text-xs font-bold uppercase tracking-wider text-white/60 mb-2.5">System punktacji</label>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button data-scoring="standard" class="scoring-opt py-2.5 px-3 rounded-xl border-2 border-amber-400 bg-white/10 text-xs font-bold text-center">
+                        Standardowa
+                    </button>
+                    <button data-scoring="vegas" class="scoring-opt py-2.5 px-3 rounded-xl border-2 border-white/15 bg-white/5 text-xs font-bold text-center">
+                        Vegas ($-52 / +$5)
+                    </button>
+                </div>
+            </div>
+
+            <button id="btn-save-settings" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition-colors">
+                Gotowe
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Statystyki -->
+    <div id="stats-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-white/15 rounded-2xl max-w-md w-full p-6 shadow-2xl text-white">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-5">
+                <h3 class="text-lg font-bold text-sky-300 flex items-center gap-2">
+                    <span>📊</span> Statystyki — Pasjans Klondike
+                </h3>
+                <button id="close-stats" class="text-white/60 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center">
+                    <div class="text-xs text-white/60">Rozegrane gry</div>
+                    <div id="stat-played" class="text-2xl font-extrabold text-white mt-0.5">0</div>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center">
+                    <div class="text-xs text-white/60">Wygrane (%)</div>
+                    <div id="stat-winrate" class="text-2xl font-extrabold text-emerald-400 mt-0.5">0%</div>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center">
+                    <div class="text-xs text-white/60">Najlepszy wynik</div>
+                    <div id="stat-best-score" class="text-2xl font-extrabold text-amber-300 mt-0.5">0</div>
+                </div>
+                <div class="bg-white/5 border border-white/10 rounded-xl p-3.5 text-center">
+                    <div class="text-xs text-white/60">Najlepszy czas</div>
+                    <div id="stat-best-time" class="text-2xl font-extrabold text-sky-300 mt-0.5">--:--</div>
+                </div>
+                <div class="col-span-2 bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between px-5">
+                    <span class="text-xs text-white/70">Aktualna seria zwycięstw:</span>
+                    <span id="stat-streak" class="text-lg font-extrabold text-amber-400">0 🔥</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button id="btn-reset-stats" class="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold border border-rose-500/30">
+                    Resetuj
+                </button>
+                <button id="btn-close-stats-bottom" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 rounded-xl transition-colors">
+                    Zamknij
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Zwycięstwo -->
+    <div id="victory-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950 border-2 border-amber-400/70 rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl transform scale-95 transition-transform duration-300" id="victory-card">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-400/20 border border-amber-400/50 text-4xl mb-3 shadow-lg">
+                🏆
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-amber-300 mb-1">Wygrana!</h2>
+            <p class="text-white/75 text-sm mb-6">Znakomita partia w Pasjans Klondike!</p>
+            
+            <div class="grid grid-cols-3 gap-2 bg-black/45 rounded-xl p-4 mb-6 border border-white/10">
+                <div>
+                    <div class="text-[11px] uppercase tracking-wider text-white/50">Wynik końcowy</div>
+                    <div id="final-score" class="text-lg sm:text-xl font-extrabold text-amber-300 mt-0.5">0</div>
+                </div>
+                <div class="border-x border-white/10">
+                    <div class="text-[11px] uppercase tracking-wider text-white/50">Czas</div>
+                    <div id="final-time" class="text-lg sm:text-xl font-extrabold text-white mt-0.5">00:00</div>
+                </div>
+                <div>
+                    <div class="text-[11px] uppercase tracking-wider text-white/50">Ruchy</div>
+                    <div id="final-moves" class="text-lg sm:text-xl font-extrabold text-white mt-0.5">0</div>
+                </div>
+            </div>
+
+            <button id="btn-play-again" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold py-3.5 px-6 rounded-xl shadow-lg text-base transition-transform active:scale-98">
+                Zagraj ponownie
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * PASJANS KLONDIKE — SILNIK GRY
+         */
+
+        // --- 1. GENERATOR DŹWIĘKÓW WEB AUDIO API ---
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playCardFlip() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(780, now + 0.065);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.07);
+            }
+
+            playCardPlace(isFoundation = false) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                if (isFoundation) {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.09); // E5
+                    gain.gain.setValueAtTime(0.11, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(190, now);
+                    osc.frequency.exponentialRampToValueAtTime(95, now + 0.055);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.06);
+                }
+            }
+
+            playVictory() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+                const times = [0, 0.11, 0.22, 0.34, 0.50, 0.64];
+
+                notes.forEach((freq, i) => {
+                    const now = this.ctx.currentTime + times[i];
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.36);
+                });
+            }
+        }
+
+        const sfx = new SoundEffects();
+
+        // --- 2. STAŁE I GRAFIKI SVG DLA FIGUR (J, Q, K) ---
+        const SUITS = [
+            { id: 'spades', symbol: '♠', color: 'black' },
+            { id: 'hearts', symbol: '♥', color: 'red' },
+            { id: 'clubs', symbol: '♣', color: 'black' },
+            { id: 'diamonds', symbol: '♦', color: 'red' }
+        ];
+
+        const RANKS = [
+            { value: 1, label: 'A' },
+            { value: 2, label: '2' },
+            { value: 3, label: '3' },
+            { value: 4, label: '4' },
+            { value: 5, label: '5' },
+            { value: 6, label: '6' },
+            { value: 7, label: '7' },
+            { value: 8, label: '8' },
+            { value: 9, label: '9' },
+            { value: 10, label: '10' },
+            { value: 11, label: 'J' },
+            { value: 12, label: 'Q' },
+            { value: 13, label: 'K' }
+        ];
+
+        function getFaceCardSVG(label, symbol, color) {
+            const primary = color === 'red' ? '#d11a2a' : '#1e293b';
+            const accent = '#eab308';
+            const royalBlue = '#1d4ed8';
+
+            if (label === 'K') {
+                return `
+                <svg viewBox="0 0 80 100" class="w-full h-full">
+                    <rect x="4" y="4" width="72" height="92" rx="6" fill="none" stroke="${primary}" stroke-width="2" stroke-opacity="0.35"/>
+                    <path d="M18 34 L24 18 L40 28 L56 18 L62 34 Z" fill="${accent}" stroke="${primary}" stroke-width="2"/>
+                    <circle cx="24" cy="15" r="2.5" fill="${primary}"/>
+                    <circle cx="40" cy="24" r="2.5" fill="${primary}"/>
+                    <circle cx="56" cy="15" r="2.5" fill="${primary}"/>
+                    <path d="M18 88 C18 56, 62 56, 62 88 Z" fill="${color === 'red' ? primary : royalBlue}" stroke="${primary}" stroke-width="2"/>
+                    <path d="M32 58 L40 76 L48 58" fill="${accent}"/>
+                    <circle cx="40" cy="45" r="11" fill="#fde68a" stroke="${primary}" stroke-width="2"/>
+                    <text x="40" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="${primary}">${symbol}</text>
+                </svg>`;
+            }
+            if (label === 'Q') {
+                return `
+                <svg viewBox="0 0 80 100" class="w-full h-full">
+                    <rect x="4" y="4" width="72" height="92" rx="6" fill="none" stroke="${primary}" stroke-width="2" stroke-opacity="0.35"/>
+                    <path d="M22 33 L30 21 L40 29 L50 21 L58 33 Z" fill="${accent}" stroke="${primary}" stroke-width="1.8"/>
+                    <path d="M20 88 L28 57 L52 57 L60 88 Z" fill="${color === 'red' ? '#be123c' : '#0369a1'}" stroke="${primary}" stroke-width="2"/>
+                    <circle cx="40" cy="45" r="10.5" fill="#fef3c7" stroke="${primary}" stroke-width="2"/>
+                    <text x="40" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="${primary}">${symbol}</text>
+                </svg>`;
+            }
+            return `
+            <svg viewBox="0 0 80 100" class="w-full h-full">
+                <rect x="4" y="4" width="72" height="92" rx="6" fill="none" stroke="${primary}" stroke-width="2" stroke-opacity="0.35"/>
+                <path d="M22 33 Q40 20 58 33 Z" fill="${color === 'red' ? primary : royalBlue}" stroke="${primary}" stroke-width="1.8"/>
+                <path d="M52 26 L62 18" stroke="${accent}" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M22 88 L26 57 L54 57 L58 88 Z" fill="${accent}" stroke="${primary}" stroke-width="2"/>
+                <circle cx="40" cy="45" r="10.5" fill="#fde68a" stroke="${primary}" stroke-width="2"/>
+                <text x="40" y="92" text-anchor="middle" font-size="16" font-weight="bold" fill="${primary}">${symbol}</text>
+            </svg>`;
+        }
+
+        // --- 3. ZAPIS USTAWIEŃ I STATYSTYK (LOCALSTORAGE) ---
+        const STORAGE_KEY = 'klondike_solitaire_polish_v1';
+
+        let preferences = {
+            drawCount: 1,
+            winnableMode: true,
+            scoringMode: 'standard',
+            theme: 'green',
+            cardBack: 'classic',
+            soundEnabled: true
+        };
+
+        let stats = {
+            played: 0,
+            won: 0,
+            bestScore: 0,
+            bestTime: null,
+            streak: 0
+        };
+
+        function loadSavedData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.preferences) preferences = { ...preferences, ...parsed.preferences };
+                    if (parsed.stats) stats = { ...stats, ...parsed.stats };
+                }
+            } catch (e) {
+                console.warn('Błąd odczytu ustawień:', e);
+            }
+            applyVisualPreferences();
+        }
+
+        function saveStoredData() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ preferences, stats }));
+            } catch (e) {
+                console.warn('Błąd zapisu ustawień:', e);
+            }
+        }
+
+        function applyVisualPreferences() {
+            document.body.className = `felt-surface theme-${preferences.theme} back-${preferences.cardBack} flex flex-col justify-between items-center text-white`;
+            sfx.enabled = preferences.soundEnabled;
+            document.getElementById('icon-sound-on').classList.toggle('hidden', !preferences.soundEnabled);
+            document.getElementById('icon-sound-off').classList.toggle('hidden', preferences.soundEnabled);
+            document.getElementById('mode-badge').textContent = `Dobierz ${preferences.drawCount} • ${preferences.scoringMode === 'vegas' ? 'Vegas' : 'Standardowa'}`;
+
+            document.querySelectorAll('.theme-opt').forEach(btn => {
+                btn.classList.toggle('border-amber-400', btn.dataset.theme === preferences.theme);
+                btn.classList.toggle('border-white/15', btn.dataset.theme !== preferences.theme);
+            });
+            document.querySelectorAll('.back-opt').forEach(btn => {
+                btn.classList.toggle('border-amber-400', btn.dataset.back === preferences.cardBack);
+                btn.classList.toggle('border-white/15', btn.dataset.back !== preferences.cardBack);
+            });
+            document.querySelectorAll('.scoring-opt').forEach(btn => {
+                btn.classList.toggle('border-amber-400', btn.dataset.scoring === preferences.scoringMode);
+                btn.classList.toggle('border-white/15', btn.dataset.scoring !== preferences.scoringMode);
+            });
+        }
+
+        // --- 4. STAN GRY ---
+        let state = {
+            stock: [],
+            waste: [],
+            foundations: [[], [], [], []],
+            tableau: [[], [], [], [], [], [], []],
+            score: 0,
+            moves: 0,
+            seconds: 0,
+            timerStarted: false,
+            gameWon: false,
+            isAutoCompleting: false,
+            wasteCycles: 0
+        };
+
+        let initialDealSnapshot = null;
+        let historyStack = [];
+        let timerInterval = null;
+        let victoryAnimationId = null;
+        let dragContext = null;
+
+        const stockSlot = document.getElementById('stock-slot');
+        const wasteSlot = document.getElementById('waste-slot');
+        const foundationSlots = [0, 1, 2, 3].map(i => document.getElementById(`foundation-${i}`));
+        const tableauCols = [0, 1, 2, 3, 4, 5, 6].map(i => document.getElementById(`tableau-${i}`));
+        const scoreDisplay = document.getElementById('score-display');
+        const movesDisplay = document.getElementById('moves-display');
+        const timeDisplay = document.getElementById('time-display');
+        const btnUndo = document.getElementById('btn-undo');
+        const btnAutoComplete = document.getElementById('btn-autocomplete');
+
+        // --- 5. GENERATOR TALII ---
+        function createOrderedDeck() {
+            const deck = [];
+            let uid = 0;
+            for (const suit of SUITS) {
+                for (const rank of RANKS) {
+                    deck.push({
+                        uid: uid++,
+                        suit: suit.id,
+                        symbol: suit.symbol,
+                        color: suit.color,
+                        value: rank.value,
+                        label: rank.label,
+                        faceUp: false
+                    });
+                }
+            }
+            return deck;
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function generateWinnableDeal() {
+            const deck = createOrderedDeck();
+            const byValue = {};
+            for (let v = 1; v <= 13; v++) {
+                byValue[v] = shuffleArray(deck.filter(c => c.value === v));
+            }
+
+            const tableau = [[], [], [], [], [], [], []];
+            const lowCards = [...byValue[1], ...byValue[2], ...byValue[3]];
+            const midCards = [...byValue[4], ...byValue[5], ...byValue[6], ...byValue[7], ...byValue[8]];
+            const highCards = [...byValue[9], ...byValue[10], ...byValue[11], ...byValue[12], ...byValue[13]];
+
+            shuffleArray(lowCards);
+            shuffleArray(midCards);
+            shuffleArray(highCards);
+
+            for (let col = 0; col < 7; col++) {
+                for (let row = 0; row < col; row++) {
+                    const source = (row % 2 === 0 && highCards.length > 0) ? highCards : (midCards.length > 0 ? midCards : highCards);
+                    const card = source.pop();
+                    card.faceUp = false;
+                    tableau[col].push(card);
+                }
+            }
+
+            const topCandidates = shuffleArray([...lowCards.splice(0, 5), ...midCards.splice(0, 2)]);
+            for (let col = 0; col < 7; col++) {
+                const card = topCandidates.pop();
+                card.faceUp = true;
+                tableau[col].push(card);
+            }
+
+            const stock = shuffleArray([...lowCards, ...midCards, ...highCards]);
+            stock.forEach(c => c.faceUp = false);
+
+            return { tableau, stock };
+        }
+
+        function initGame(repeatCurrent = false) {
+            stopTimer();
+            stopVictoryAnimation();
+            closeAllModals();
+            clearHints();
+
+            if (!repeatCurrent && state.moves > 0 && !state.gameWon) {
+                stats.played++;
+                stats.streak = 0;
+                saveStoredData();
+            }
+
+            let tableau, stock;
+
+            if (repeatCurrent && initialDealSnapshot) {
+                const copy = JSON.parse(JSON.stringify(initialDealSnapshot));
+                tableau = copy.tableau;
+                stock = copy.stock;
+            } else if (preferences.winnableMode) {
+                const deal = generateWinnableDeal();
+                tableau = deal.tableau;
+                stock = deal.stock;
+            } else {
+                const deck = shuffleArray(createOrderedDeck());
+                tableau = [[], [], [], [], [], [], []];
+                for (let col = 0; col < 7; col++) {
+                    for (let row = 0; row <= col; row++) {
+                        const card = deck.pop();
+                        if (row === col) card.faceUp = true;
+                        tableau[col].push(card);
+                    }
+                }
+                stock = deck;
+            }
+
+            state = {
+                stock,
+                waste: [],
+                foundations: [[], [], [], []],
+                tableau,
+                score: preferences.scoringMode === 'vegas' ? -52 : 0,
+                moves: 0,
+                seconds: 0,
+                timerStarted: false,
+                gameWon: false,
+                isAutoCompleting: false,
+                wasteCycles: 0
+            };
+
+            initialDealSnapshot = JSON.parse(JSON.stringify({ tableau: state.tableau, stock: state.stock }));
+            historyStack = [];
+
+            applyVisualPreferences();
+            updateStatsUI();
+            renderBoard();
+            sfx.playCardFlip();
+        }
+
+        // --- 6. HISTORIA RUCHÓW I PUNKTACJA ---
+        function saveHistory() {
+            historyStack.push(JSON.parse(JSON.stringify(state)));
+            if (historyStack.length > 100) historyStack.shift();
+            btnUndo.disabled = false;
+        }
+
+        function undoMove() {
+            if (historyStack.length === 0 || state.isAutoCompleting || state.gameWon) return;
+            clearHints();
+            const prev = historyStack.pop();
+            const curSec = state.seconds;
+            const curTimer = state.timerStarted;
+
+            state = prev;
+            state.seconds = curSec;
+            state.timerStarted = curTimer;
+
+            if (preferences.scoringMode === 'standard') {
+                state.score = Math.max(0, state.score - 2);
+            }
+
+            sfx.playCardFlip();
+            updateStatsUI();
+            renderBoard();
+        }
+
+        function addScore(delta) {
+            if (preferences.scoringMode === 'vegas') {
+                state.score += delta;
+            } else {
+                state.score = Math.max(0, state.score + delta);
+            }
+        }
+
+        function startTimerIfNeeded() {
+            if (!state.timerStarted && !state.gameWon) {
+                state.timerStarted = true;
+                timerInterval = setInterval(() => {
+                    state.seconds++;
+                    if (preferences.scoringMode === 'standard' && state.seconds % 10 === 0) {
+                        addScore(-2);
+                        updateScoreDisplay();
+                    }
+                    updateTimeDisplay();
+                }, 1000);
+            }
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60).toString().padStart(2, '0');
+            const s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateTimeDisplay() {
+            timeDisplay.textContent = formatTime(state.seconds);
+        }
+
+        function updateScoreDisplay() {
+            if (preferences.scoringMode === 'vegas') {
+                const sign = state.score < 0 ? '-' : '';
+                scoreDisplay.textContent = `${sign}$${Math.abs(state.score)}`;
+                scoreDisplay.classList.toggle('text-rose-400', state.score < 0);
+                scoreDisplay.classList.toggle('text-emerald-300', state.score >= 0);
+                scoreDisplay.classList.remove('text-amber-300');
+            } else {
+                scoreDisplay.textContent = state.score;
+                scoreDisplay.className = 'font-bold text-amber-300 tabular-nums';
+            }
+        }
+
+        function updateStatsUI() {
+            updateScoreDisplay();
+            movesDisplay.textContent = state.moves;
+            updateTimeDisplay();
+            btnUndo.disabled = historyStack.length === 0;
+            checkAutoCompleteAvailability();
+        }
+
+        // --- 7. RENDEROWANIE KART ---
+        function createCardElement(card, sourceInfo) {
+            const el = document.createElement('div');
+            el.className = `card ${card.faceUp ? card.color : 'face-down'}`;
+            el.dataset.uid = card.uid;
+
+            if (card.faceUp) {
+                const isFace = ['J', 'Q', 'K'].includes(card.label);
+                const centerContent = isFace
+                    ? getFaceCardSVG(card.label, card.symbol, card.color)
+                    : `<span class="card-pip-large">${card.symbol}</span>`;
+
+                el.innerHTML = `
+                    <div class="card-header-row">
+                        <span class="card-rank-top">${card.label}</span>
+                        <span class="card-suit-top">${card.symbol}</span>
+                    </div>
+                    <div class="card-center-art">
+                        ${centerContent}
+                    </div>
+                    <div class="card-footer-row">
+                        <span class="card-rank-top">${card.label}</span>
+                        <span class="card-suit-top">${card.symbol}</span>
+                    </div>
+                `;
+
+                el.addEventListener('pointerdown', (e) => handlePointerDown(e, card, sourceInfo));
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    smartAutoMove(card, sourceInfo);
+                });
+                el.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    tryAutoMoveToFoundation(card, sourceInfo);
+                });
+            }
+
+            return el;
+        }
+
+        function renderBoard() {
+            stockSlot.innerHTML = `
+                <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-full border-2 border-white/25 flex items-center justify-center group-hover:border-white/60 transition-colors">
+                    <span class="text-xl sm:text-2xl text-white/50 group-hover:text-white/90">↻</span>
+                </div>`;
+            if (state.stock.length > 0) {
+                const layers = Math.min(3, Math.ceil(state.stock.length / 8));
+                for (let i = 0; i < layers; i++) {
+                    const topCard = state.stock[state.stock.length - 1];
+                    const cardEl = createCardElement(topCard, { zone: 'stock' });
+                    cardEl.style.top = `${-i * 2}px`;
+                    cardEl.style.left = `${-i * 2}px`;
+                    cardEl.style.cursor = 'pointer';
+                    stockSlot.appendChild(cardEl);
+                }
+            }
+
+            wasteSlot.innerHTML = '';
+            if (state.waste.length > 0) {
+                const visibleStart = Math.max(0, state.waste.length - 3);
+                for (let i = visibleStart; i < state.waste.length; i++) {
+                    const card = state.waste[i];
+                    const isTop = i === state.waste.length - 1;
+                    const cardEl = createCardElement(card, { zone: 'waste', index: i });
+                    const offset = (i - visibleStart) * (window.innerWidth < 820 ? 10 : 18);
+                    cardEl.style.left = `${offset}px`;
+                    cardEl.style.top = '0px';
+                    cardEl.style.zIndex = i + 1;
+                    if (!isTop) {
+                        cardEl.style.pointerEvents = 'none';
+                    }
+                    wasteSlot.appendChild(cardEl);
+                }
+            }
+
+            foundationSlots.forEach((slot, fIdx) => {
+                slot.innerHTML = '';
+                const pile = state.foundations[fIdx];
+                if (pile.length > 0) {
+                    const topCard = pile[pile.length - 1];
+                    const cardEl = createCardElement(topCard, { zone: 'foundation', fIdx, index: pile.length - 1 });
+                    cardEl.style.top = '0px';
+                    cardEl.style.left = '0px';
+                    slot.appendChild(cardEl);
+                }
+            });
+
+            const isMobile = window.innerWidth < 820;
+            const offsetDown = isMobile ? 11 : 16;
+            const offsetUp = isMobile ? 21 : 28;
+
+            tableauCols.forEach((colEl, tIdx) => {
+                colEl.innerHTML = '';
+                const pile = state.tableau[tIdx];
+                let currentTop = 0;
+
+                pile.forEach((card, cIdx) => {
+                    const cardEl = createCardElement(card, { zone: 'tableau', tIdx, index: cIdx });
+                    cardEl.style.top = `${currentTop}px`;
+                    cardEl.style.left = '0px';
+                    cardEl.style.zIndex = cIdx + 1;
+                    colEl.appendChild(cardEl);
+
+                    currentTop += card.faceUp ? offsetUp : offsetDown;
+                });
+            });
+        }
+
+        // --- 8. DOBIERANIE Z TALII REZERWOWEJ ---
+        stockSlot.addEventListener('click', () => {
+            if (state.isAutoCompleting || state.gameWon) return;
+            clearHints();
+
+            if (state.stock.length === 0 && state.waste.length === 0) return;
+
+            if (state.stock.length === 0 && preferences.scoringMode === 'vegas') {
+                const maxPasses = preferences.drawCount === 1 ? 1 : 3;
+                if (state.wasteCycles + 1 >= maxPasses) {
+                    showToast('Koniec przetasowań talii w trybie Vegas!');
+                    return;
+                }
+            }
+
+            startTimerIfNeeded();
+            saveHistory();
+
+            if (state.stock.length > 0) {
+                const count = Math.min(preferences.drawCount, state.stock.length);
+                for (let i = 0; i < count; i++) {
+                    const card = state.stock.pop();
+                    card.faceUp = true;
+                    state.waste.push(card);
+                }
+                state.moves++;
+                sfx.playCardFlip();
+            } else {
+                while (state.waste.length > 0) {
+                    const card = state.waste.pop();
+                    card.faceUp = false;
+                    state.stock.push(card);
+                }
+                state.wasteCycles++;
+                state.moves++;
+                if (preferences.scoringMode === 'standard') {
+                    addScore(preferences.drawCount === 1 ? -100 : -20);
+                }
+                sfx.playCardFlip();
+            }
+
+            updateStatsUI();
+            renderBoard();
+        });
+
+        // --- 9. ZASADY RUCHÓW I AUTOMATYCZNE PRZENOSZENIE ---
+        function canMoveToFoundation(card, fIdx) {
+            const pile = state.foundations[fIdx];
+            if (pile.length === 0) return card.value === 1;
+            const topCard = pile[pile.length - 1];
+            return topCard.suit === card.suit && card.value === topCard.value + 1;
+        }
+
+        function canMoveToTableau(card, tIdx) {
+            const pile = state.tableau[tIdx];
+            if (pile.length === 0) return card.value === 13;
+            const topCard = pile[pile.length - 1];
+            return topCard.faceUp && topCard.color !== card.color && card.value === topCard.value - 1;
+        }
+
+        function tryAutoMoveToFoundation(card, sourceInfo) {
+            if (state.isAutoCompleting || state.gameWon) return false;
+            clearHints();
+
+            if (sourceInfo.zone === 'tableau') {
+                const pile = state.tableau[sourceInfo.tIdx];
+                if (sourceInfo.index !== pile.length - 1) return false;
+            } else if (sourceInfo.zone !== 'waste') {
+                return false;
+            }
+
+            for (let fIdx = 0; fIdx < 4; fIdx++) {
+                if (canMoveToFoundation(card, fIdx)) {
+                    executeMove(sourceInfo, { zone: 'foundation', fIdx });
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function smartAutoMove(card, sourceInfo) {
+            if (tryAutoMoveToFoundation(card, sourceInfo)) return;
+
+            for (let tIdx = 0; tIdx < 7; tIdx++) {
+                if (sourceInfo.zone === 'tableau' && sourceInfo.tIdx === tIdx) continue;
+                if (canMoveToTableau(card, tIdx)) {
+                    executeMove(sourceInfo, { zone: 'tableau', tIdx });
+                    return;
+                }
+            }
+        }
+
+        function executeMove(from, to) {
+            startTimerIfNeeded();
+            saveHistory();
+
+            let movingCards = [];
+
+            if (from.zone === 'waste') {
+                movingCards = [state.waste.pop()];
+            } else if (from.zone === 'foundation') {
+                movingCards = [state.foundations[from.fIdx].pop()];
+                addScore(preferences.scoringMode === 'vegas' ? -5 : -15);
+            } else if (from.zone === 'tableau') {
+                movingCards = state.tableau[from.tIdx].splice(from.index);
+            }
+
+            if (to.zone === 'foundation') {
+                state.foundations[to.fIdx].push(...movingCards);
+                addScore(preferences.scoringMode === 'vegas' ? 5 : 10);
+                sfx.playCardPlace(true);
+            } else if (to.zone === 'tableau') {
+                state.tableau[to.tIdx].push(...movingCards);
+                if (from.zone === 'waste' && preferences.scoringMode === 'standard') {
+                    addScore(5);
+                }
+                sfx.playCardPlace(false);
+            }
+
+            if (from.zone === 'tableau') {
+                const sourcePile = state.tableau[from.tIdx];
+                if (sourcePile.length > 0 && !sourcePile[sourcePile.length - 1].faceUp) {
+                    sourcePile[sourcePile.length - 1].faceUp = true;
+                    if (preferences.scoringMode === 'standard') addScore(5);
+                }
+            }
+
+            state.moves++;
+            updateStatsUI();
+            renderBoard();
+            checkWinCondition();
+        }
+
+        // --- 10. PRZECIĄGANIE KART (DRAG & DROP POINTER EVENTS) ---
+        function handlePointerDown(e, card, sourceInfo) {
+            if (e.button !== 0 && e.pointerType === 'mouse') return;
+            if (state.isAutoCompleting || state.gameWon) return;
+
+            clearHints();
+
+            let cardsToDrag = [];
+            let cardElements = [];
+
+            if (sourceInfo.zone === 'waste') {
+                if (sourceInfo.index !== state.waste.length - 1) return;
+                cardsToDrag = [card];
+                const el = wasteSlot.querySelector(`[data-uid="${card.uid}"]`);
+                if (el) cardElements.push(el);
+            } else if (sourceInfo.zone === 'foundation') {
+                cardsToDrag = [card];
+                const el = foundationSlots[sourceInfo.fIdx].querySelector(`[data-uid="${card.uid}"]`);
+                if (el) cardElements.push(el);
+            } else if (sourceInfo.zone === 'tableau') {
+                const pile = state.tableau[sourceInfo.tIdx];
+                cardsToDrag = pile.slice(sourceInfo.index);
+                const colEl = tableauCols[sourceInfo.tIdx];
+                cardsToDrag.forEach(c => {
+                    const el = colEl.querySelector(`[data-uid="${c.uid}"]`);
+                    if (el) cardElements.push(el);
+                });
+            }
+
+            if (cardElements.length === 0) return;
+
+            const firstRect = cardElements[0].getBoundingClientRect();
+
+            dragContext = {
+                cards: cardsToDrag,
+                elements: cardElements,
+                sourceInfo,
+                startX: e.clientX,
+                startY: e.clientY,
+                offsetX: e.clientX - firstRect.left,
+                offsetY: e.clientY - firstRect.top,
+                hasMoved: false
+            };
+
+            document.addEventListener('pointermove', handlePointerMove);
+            document.addEventListener('pointerup', handlePointerUp);
+        }
+
+        function handlePointerMove(e) {
+            if (!dragContext) return;
+
+            const dx = e.clientX - dragContext.startX;
+            const dy = e.clientY - dragContext.startY;
+
+            if (!dragContext.hasMoved && Math.hypot(dx, dy) < 5) return;
+
+            const isMobile = window.innerWidth < 820;
+            const offsetUp = isMobile ? 21 : 28;
+
+            if (!dragContext.hasMoved) {
+                dragContext.hasMoved = true;
+                dragContext.elements.forEach((el, idx) => {
+                    el.classList.add('dragging');
+                    el.style.position = 'fixed';
+                    el.style.zIndex = 1000 + idx;
+                    el.style.left = `${e.clientX - dragContext.offsetX}px`;
+                    el.style.top = `${e.clientY - dragContext.offsetY + idx * offsetUp}px`;
+                    document.body.appendChild(el);
+                });
+            } else {
+                dragContext.elements.forEach((el, idx) => {
+                    el.style.left = `${e.clientX - dragContext.offsetX}px`;
+                    el.style.top = `${e.clientY - dragContext.offsetY + idx * offsetUp}px`;
+                });
+            }
+
+            highlightDropTarget(e.clientX, e.clientY);
+        }
+
+        function highlightDropTarget(clientX, clientY) {
+            document.querySelectorAll('.highlight-target').forEach(el => el.classList.remove('highlight-target'));
+            const target = findValidDropTarget(clientX, clientY);
+            if (target) target.element.classList.add('highlight-target');
+        }
+
+        function findValidDropTarget(clientX, clientY) {
+            const leadCard = dragContext.cards[0];
+            const isSingleCard = dragContext.cards.length === 1;
+
+            if (isSingleCard) {
+                for (let fIdx = 0; fIdx < 4; fIdx++) {
+                    if (dragContext.sourceInfo.zone === 'foundation' && dragContext.sourceInfo.fIdx === fIdx) continue;
+                    const slot = foundationSlots[fIdx];
+                    const rect = slot.getBoundingClientRect();
+                    if (
+                        clientX >= rect.left - 14 &&
+                        clientX <= rect.right + 14 &&
+                        clientY >= rect.top - 14 &&
+                        clientY <= rect.bottom + 14
+                    ) {
+                        if (canMoveToFoundation(leadCard, fIdx)) {
+                            return { zone: 'foundation', fIdx, element: slot };
+                        }
+                    }
+                }
+            }
+
+            for (let tIdx = 0; tIdx < 7; tIdx++) {
+                if (dragContext.sourceInfo.zone === 'tableau' && dragContext.sourceInfo.tIdx === tIdx) continue;
+                const col = tableauCols[tIdx];
+                const rect = col.getBoundingClientRect();
+                const lastCardEl = col.lastElementChild;
+                const bottomBound = lastCardEl ? Math.max(rect.bottom, lastCardEl.getBoundingClientRect().bottom + 24) : rect.bottom;
+
+                if (
+                    clientX >= rect.left - 12 &&
+                    clientX <= rect.right + 12 &&
+                    clientY >= rect.top - 12 &&
+                    clientY <= bottomBound
+                ) {
+                    if (canMoveToTableau(leadCard, tIdx)) {
+                        return { zone: 'tableau', tIdx, element: lastCardEl || col };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function handlePointerUp(e) {
+            document.removeEventListener('pointermove', handlePointerMove);
+            document.removeEventListener('pointerup', handlePointerUp);
+            document.querySelectorAll('.highlight-target').forEach(el => el.classList.remove('highlight-target'));
+
+            if (!dragContext) return;
+
+            if (dragContext.hasMoved) {
+                const target = findValidDropTarget(e.clientX, e.clientY);
+                dragContext.elements.forEach(el => el.remove());
+
+                if (target) {
+                    executeMove(dragContext.sourceInfo, target);
+                } else {
+                    renderBoard();
+                }
+            }
+
+            dragContext = null;
+        }
+
+        // --- 11. PODPOWIEDZI I AUTOUKOŃCZENIE ---
+        function clearHints() {
+            document.querySelectorAll('.hint-glow').forEach(el => el.classList.remove('hint-glow'));
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-msg');
+            toast.textContent = message;
+            toast.classList.remove('opacity-0');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => toast.classList.add('opacity-0'), 2400);
+        }
+
+        function showHint() {
+            if (state.isAutoCompleting || state.gameWon) return;
+            clearHints();
+
+            if (state.waste.length > 0) {
+                const topWaste = state.waste[state.waste.length - 1];
+                for (let fIdx = 0; fIdx < 4; fIdx++) {
+                    if (canMoveToFoundation(topWaste, fIdx)) {
+                        highlightHint(topWaste.uid, foundationSlots[fIdx]);
+                        return;
+                    }
+                }
+            }
+
+            for (let tIdx = 0; tIdx < 7; tIdx++) {
+                const pile = state.tableau[tIdx];
+                if (pile.length > 0) {
+                    const topCard = pile[pile.length - 1];
+                    for (let fIdx = 0; fIdx < 4; fIdx++) {
+                        if (canMoveToFoundation(topCard, fIdx)) {
+                            highlightHint(topCard.uid, foundationSlots[fIdx]);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            for (let fromIdx = 0; fromIdx < 7; fromIdx++) {
+                const pile = state.tableau[fromIdx];
+                const firstFaceUpIdx = pile.findIndex(c => c.faceUp);
+                if (firstFaceUpIdx === -1) continue;
+
+                const leadCard = pile[firstFaceUpIdx];
+                if (leadCard.value === 13 && firstFaceUpIdx === 0) continue;
+
+                for (let toIdx = 0; toIdx < 7; toIdx++) {
+                    if (fromIdx === toIdx) continue;
+                    if (canMoveToTableau(leadCard, toIdx)) {
+                        const targetPile = state.tableau[toIdx];
+                        const targetEl = targetPile.length > 0
+                            ? document.querySelector(`[data-uid="${targetPile[targetPile.length - 1].uid}"]`)
+                            : tableauCols[toIdx];
+                        highlightHint(leadCard.uid, targetEl);
+                        return;
+                    }
+                }
+            }
+
+            if (state.waste.length > 0) {
+                const topWaste = state.waste[state.waste.length - 1];
+                for (let toIdx = 0; toIdx < 7; toIdx++) {
+                    if (canMoveToTableau(topWaste, toIdx)) {
+                        const targetPile = state.tableau[toIdx];
+                        const targetEl = targetPile.length > 0
+                            ? document.querySelector(`[data-uid="${targetPile[targetPile.length - 1].uid}"]`)
+                            : tableauCols[toIdx];
+                        highlightHint(topWaste.uid, targetEl);
+                        return;
+                    }
+                }
+            }
+
+            if (state.stock.length > 0 || state.waste.length > 0) {
+                stockSlot.classList.add('hint-glow');
+                return;
+            }
+
+            showToast('Brak dalszych ruchów w tym rozdaniu');
+        }
+
+        function highlightHint(cardUid, targetElement) {
+            const sourceEl = document.querySelector(`[data-uid="${cardUid}"]`);
+            if (sourceEl) sourceEl.classList.add('hint-glow');
+            if (targetElement) targetElement.classList.add('hint-glow');
+        }
+
+        function checkAutoCompleteAvailability() {
+            if (state.gameWon || state.isAutoCompleting) {
+                btnAutoComplete.classList.add('hidden');
+                return;
+            }
+            const allTableauFaceUp = state.tableau.every(pile => pile.every(card => card.faceUp));
+            const noStockOrWaste = state.stock.length === 0 && state.waste.length === 0;
+            btnAutoComplete.classList.toggle('hidden', !(allTableauFaceUp && noStockOrWaste));
+        }
+
+        function runAutoComplete() {
+            if (state.isAutoCompleting || state.gameWon) return;
+            state.isAutoCompleting = true;
+            btnAutoComplete.classList.add('hidden');
+            btnUndo.disabled = true;
+
+            const step = () => {
+                let moved = false;
+                for (let tIdx = 0; tIdx < 7; tIdx++) {
+                    const pile = state.tableau[tIdx];
+                    if (pile.length === 0) continue;
+                    const topCard = pile[pile.length - 1];
+
+                    for (let fIdx = 0; fIdx < 4; fIdx++) {
+                        if (canMoveToFoundation(topCard, fIdx)) {
+                            state.tableau[tIdx].pop();
+                            state.foundations[fIdx].push(topCard);
+                            state.moves++;
+                            addScore(preferences.scoringMode === 'vegas' ? 5 : 10);
+                            sfx.playCardPlace(true);
+                            moved = true;
+                            break;
+                        }
+                    }
+                    if (moved) break;
+                }
+
+                updateStatsUI();
+                renderBoard();
+
+                if (moved) {
+                    setTimeout(step, 85);
+                } else {
+                    state.isAutoCompleting = false;
+                    checkWinCondition();
+                }
+            };
+
+            step();
+        }
+
+        // --- 12. WYGRANA I KASKADA ODBIJAJĄCYCH SIĘ KART ---
+        function checkWinCondition() {
+            const totalInFoundations = state.foundations.reduce((sum, pile) => sum + pile.length, 0);
+            if (totalInFoundations === 52 && !state.gameWon) {
+                state.gameWon = true;
+                stopTimer();
+                sfx.playVictory();
+
+                if (preferences.scoringMode === 'standard' && state.seconds > 0) {
+                    const timeBonus = Math.max(0, Math.floor(700000 / Math.max(30, state.seconds)));
+                    addScore(timeBonus);
+                }
+
+                stats.played++;
+                stats.won++;
+                stats.streak++;
+                if (state.score > stats.bestScore) stats.bestScore = state.score;
+                if (stats.bestTime === null || state.seconds < stats.bestTime) stats.bestTime = state.seconds;
+                saveStoredData();
+
+                updateStatsUI();
+                startVictoryAnimation();
+
+                setTimeout(() => {
+                    document.getElementById('final-score').textContent = preferences.scoringMode === 'vegas'
+                        ? `${state.score < 0 ? '-' : ''}$${Math.abs(state.score)}`
+                        : state.score;
+                    document.getElementById('final-moves').textContent = state.moves;
+                    document.getElementById('final-time').textContent = formatTime(state.seconds);
+
+                    const modal = document.getElementById('victory-modal');
+                    const card = document.getElementById('victory-card');
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    requestAnimationFrame(() => {
+                        card.classList.remove('scale-95');
+                        card.classList.add('scale-100');
+                    });
+                }, 1600);
+            }
+        }
+
+        function startVictoryAnimation() {
+            const canvas = document.getElementById('victory-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const queue = [];
+            for (let rankIdx = 12; rankIdx >= 0; rankIdx--) {
+                for (let fIdx = 0; fIdx < 4; fIdx++) {
+                    const pile = state.foundations[fIdx];
+                    const card = pile[rankIdx];
+                    const rect = foundationSlots[fIdx].getBoundingClientRect();
+                    if (card) {
+                        queue.push({
+                            card,
+                            startX: rect.left,
+                            startY: rect.top,
+                            w: rect.width,
+                            h: rect.height
+                        });
+                    }
+                }
+            }
+
+            const activeCards = [];
+            let spawnTimer = 0;
+
+            function animate() {
+                spawnTimer++;
+                if (spawnTimer % 8 === 0 && queue.length > 0) {
+                    const next = queue.shift();
+                    activeCards.push({
+                        ...next,
+                        x: next.startX,
+                        y: next.startY,
+                        vx: (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 4.5 + 2.5),
+                        vy: -(Math.random() * 4 + 1)
+                    });
+                }
+
+                for (let i = activeCards.length - 1; i >= 0; i--) {
+                    const c = activeCards[i];
+                    c.x += c.vx;
+                    c.y += c.vy;
+                    c.vy += 0.52;
+
+                    if (c.y + c.h > canvas.height) {
+                        c.y = canvas.height - c.h;
+                        c.vy = -c.vy * 0.84;
+                    }
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.roundRect(c.x, c.y, c.w, c.h, 6);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = c.card.color === 'red' ? '#d11a2a' : '#18181b';
+                    ctx.font = `800 ${Math.floor(c.w * 0.22)}px "Inter", sans-serif`;
+                    ctx.fillText(`${c.card.label}${c.card.symbol}`, c.x + 6, c.y + c.w * 0.25);
+                    ctx.font = `${Math.floor(c.w * 0.46)}px "Inter", sans-serif`;
+                    ctx.fillText(c.card.symbol, c.x + c.w * 0.28, c.y + c.h * 0.64);
+
+                    if (c.x < -c.w - 50 || c.x > canvas.width + 50) {
+                        activeCards.splice(i, 1);
+                    }
+                }
+
+                victoryAnimationId = requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        function stopVictoryAnimation() {
+            if (victoryAnimationId) {
+                cancelAnimationFrame(victoryAnimationId);
+                victoryAnimationId = null;
+            }
+            const canvas = document.getElementById('victory-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // --- 13. OBSŁUGA INTERFEJSU, MODALI I SKRÓTÓW KLAWISZOWYCH ---
+        function closeAllModals() {
+            document.getElementById('new-game-dropdown').classList.add('hidden');
+            ['settings-modal', 'stats-modal', 'victory-modal'].forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            });
+        }
+
+        const btnNewMenu = document.getElementById('btn-new-menu');
+        const newGameDropdown = document.getElementById('new-game-dropdown');
+
+        btnNewMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+            newGameDropdown.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', () => {
+            newGameDropdown.classList.add('hidden');
+        });
+
+        newGameDropdown.querySelectorAll('[data-action="new"]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                preferences.drawCount = parseInt(btn.dataset.draw, 10);
+                preferences.winnableMode = btn.dataset.winnable === 'true';
+                saveStoredData();
+                initGame(false);
+            });
+        });
+
+        document.getElementById('btn-restart-deal').addEventListener('click', () => {
+            initGame(true);
+        });
+
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            closeAllModals();
+            const m = document.getElementById('settings-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        });
+
+        document.getElementById('close-settings').addEventListener('click', closeAllModals);
+        document.getElementById('btn-save-settings').addEventListener('click', closeAllModals);
+
+        document.querySelectorAll('.theme-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                preferences.theme = btn.dataset.theme;
+                applyVisualPreferences();
+                saveStoredData();
+            });
+        });
+
+        document.querySelectorAll('.back-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                preferences.cardBack = btn.dataset.back;
+                applyVisualPreferences();
+                saveStoredData();
+            });
+        });
+
+        document.querySelectorAll('.scoring-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (preferences.scoringMode !== btn.dataset.scoring) {
+                    preferences.scoringMode = btn.dataset.scoring;
+                    applyVisualPreferences();
+                    saveStoredData();
+                    initGame(false);
+                }
+            });
+        });
+
+        document.getElementById('btn-stats').addEventListener('click', () => {
+            closeAllModals();
+            const winRate = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
+            document.getElementById('stat-played').textContent = stats.played;
+            document.getElementById('stat-winrate').textContent = `${winRate}%`;
+            document.getElementById('stat-best-score').textContent = stats.bestScore;
+            document.getElementById('stat-best-time').textContent = stats.bestTime !== null ? formatTime(stats.bestTime) : '--:--';
+            document.getElementById('stat-streak').textContent = `${stats.streak} 🔥`;
+
+            const m = document.getElementById('stats-modal');
+            m.classList.remove('hidden');
+            m.classList.add('flex');
+        });
+
+        document.getElementById('close-stats').addEventListener('click', closeAllModals);
+        document.getElementById('btn-close-stats-bottom').addEventListener('click', closeAllModals);
+        document.getElementById('btn-reset-stats').addEventListener('click', () => {
+            stats = { played: 0, won: 0, bestScore: 0, bestTime: null, streak: 0 };
+            saveStoredData();
+            document.getElementById('btn-stats').click();
+        });
+
+        document.getElementById('btn-sound').addEventListener('click', () => {
+            preferences.soundEnabled = !preferences.soundEnabled;
+            applyVisualPreferences();
+            saveStoredData();
+            if (preferences.soundEnabled) sfx.playCardFlip();
+        });
+
+        btnUndo.addEventListener('click', undoMove);
+        document.getElementById('btn-hint').addEventListener('click', showHint);
+        btnAutoComplete.addEventListener('click', runAutoComplete);
+        document.getElementById('btn-play-again').addEventListener('click', () => initGame(false));
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                undoMove();
+            } else if (e.key.toLowerCase() === 'h') {
+                showHint();
+            } else if (e.key === 'Escape') {
+                closeAllModals();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            renderBoard();
+            const canvas = document.getElementById('victory-canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        window.onload = () => {
+            loadSavedData();
+            initGame(false);
+        };
+    </script>
+</body>
+</html>
