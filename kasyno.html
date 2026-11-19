@@ -108,8 +108,15 @@
                 inset 0 0 12px rgba(0, 0, 0, 0.7);
         }
 
+        .reel-column {
+            height: 276px;
+            min-height: 276px;
+        }
+
         .reel-cell {
             height: 92px;
+            min-height: 92px;
+            flex: 0 0 92px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -119,8 +126,15 @@
         }
 
         @media (min-width: 640px) {
+            .reel-column {
+                height: 324px;
+                min-height: 324px;
+            }
+
             .reel-cell {
                 height: 108px;
+                min-height: 108px;
+                flex-basis: 108px;
                 font-size: 3.35rem;
             }
         }
@@ -1377,18 +1391,21 @@
            8. OBSŁUGA KLAWIATURY (SPACJA) I INICJALIZACJA
            ===================================================================== */
         document.addEventListener('keydown', (event) => {
-            if (event.code === 'Space') {
-                const tag = document.activeElement ? document.activeElement.tagName : '';
-                if (tag !== 'BUTTON' && tag !== 'INPUT') {
-                    event.preventDefault();
-                }
-                if (!state.isSpinning && state.balance >= state.bet) {
-                    event.preventDefault();
-                    const spinBtn = document.getElementById('spinBtn');
-                    spinBtn.classList.add('pressed');
-                    setTimeout(() => spinBtn.classList.remove('pressed'), 140);
-                    startSpin();
-                }
+            if (event.code !== 'Space' || event.repeat) return;
+
+            const target = event.target;
+            const tag = target && target.tagName ? target.tagName : '';
+            const isInteractive = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A'].includes(tag)
+                || (target && target.isContentEditable);
+
+            if (isInteractive) return;
+
+            event.preventDefault();
+            if (!state.isSpinning && state.balance >= state.bet) {
+                const spinBtn = document.getElementById('spinBtn');
+                spinBtn.classList.add('pressed');
+                setTimeout(() => spinBtn.classList.remove('pressed'), 140);
+                startSpin();
             }
         });
 
