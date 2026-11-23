@@ -352,19 +352,28 @@
 
 })();
 
+
 let rightClickStage = 0;
+let allowNextContextMenu = false;
+
+const messages = [
+  "Stop!",
+  "Nie.",
+  "Nei pozwalam.",
+  "Pls.",
+  "Nie.",
+  "Dobra, jak jesteś taki, to masz."
+];
 
 document.addEventListener("contextmenu", function(event) {
-  event.preventDefault();
 
-  const messages = [
-    "Stop!",
-    "Nie.",
-    "Nei pozwalam.",
-    "Pls.",
-    "Nie.",
-    "Dobra, jak jesteś taki, to masz :("
-  ];
+  if (allowNextContextMenu) {
+    allowNextContextMenu = false;
+    rightClickStage = 0;
+    return; // Normalne menu przeglądarki!
+  }
+
+  event.preventDefault();
 
   let old = document.getElementById("right-click-warning");
   if (old) old.remove();
@@ -374,35 +383,28 @@ document.addEventListener("contextmenu", function(event) {
 
   Object.assign(menu.style, {
     position: "fixed",
-    left: Math.min(event.clientX, innerWidth - 240) + "px",
-    top: Math.min(event.clientY, innerHeight - 100) + "px",
+    left: Math.min(event.clientX, innerWidth - 260) + "px",
+    top: Math.min(event.clientY, innerHeight - 80) + "px",
     background: "#252525",
     color: "white",
-    padding: "12px 18px",
+    padding: "14px 22px",
     borderRadius: "9px",
-    font: "14px Arial",
+    font: "15px Arial",
     zIndex: "999999",
     boxShadow: "0 5px 20px #0008",
     cursor: "pointer"
   });
 
-  menu.textContent = messages[Math.min(rightClickStage, 5)];
+  menu.textContent = messages[rightClickStage];
 
   menu.onclick = function() {
-    rightClickStage++;
-
-    if (rightClickStage >= 6) {
+    if (rightClickStage === 5) {
       menu.remove();
-      rightClickStage = 0;
-
-      // Pozwól na zwykłe menu przy następnym kliknięciu
-      document.addEventListener("contextmenu", function allowOnce(e) {
-        document.removeEventListener("contextmenu", allowOnce);
-      }, { once: true });
-
+      allowNextContextMenu = true;
       return;
     }
 
+    rightClickStage++;
     menu.textContent = messages[rightClickStage];
   };
 
