@@ -20,5 +20,13 @@
 </head>
 <body>
   <video src="pepeco.mp4" controls autoplay loop></video>
+
+<script>
+const video = document.getElementById("video");
+
+video.play().catch(() => {
+  console.log("Przeglądarka wymaga kliknięcia Play");
+});
+</script>  
 </body>
 </html>
