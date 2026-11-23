@@ -8,7 +8,7 @@
                 scope: '/Edimod/'
             })
             .then((reg) => {
-                console.log('Edimod PWA gotowe!', reg);
+                console.log('CO TY TU ROBISZ!', reg);
             })
             .catch((err) => {
                 console.error('Błąd rejestracji Service Workera:', err);
