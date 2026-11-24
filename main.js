@@ -77,46 +77,67 @@
             let startX = 0, startY = 0;
             let initialX = 0, initialY = 0;
 
-            window.addEventListener('load', () => {
-                const rect = ocImg.getBoundingClientRect();
-                ocImg.style.left = (window.innerWidth - rect.width - 50) + 'px';
-                ocImg.style.top = (window.innerHeight - rect.height - 50) + 'px';
-                ocImg.style.bottom = 'auto';
-                ocImg.style.right = 'auto';
-            });
-
-            ocImg.addEventListener('mousedown', (e) => {
+            function startDrag(clientX, clientY) {
                 isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                
+                startX = clientX;
+                startY = clientY;
                 const rect = ocImg.getBoundingClientRect();
                 initialX = rect.left;
                 initialY = rect.top;
+                ocImg.style.bottom = 'auto';
+                ocImg.style.right = 'auto';
+                ocImg.style.left = initialX + 'px';
+                ocImg.style.top = initialY + 'px';
+            }
 
-                e.preventDefault();
-            });
-
-            window.addEventListener('mousemove', (e) => {
+            function moveDrag(clientX, clientY) {
                 if (!isDragging) return;
-
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
+                const dx = clientX - startX;
+                const dy = clientY - startY;
 
                 ocImg.style.left = (initialX + dx) + 'px';
                 ocImg.style.top = (initialY + dy) + 'px';
 
-                if (e.clientY < window.innerHeight / 2) {
+                if (clientY < window.innerHeight / 2) {
                     ocImg.src = 'oc2.jpg';
                 } else {
                     ocImg.src = 'oc.jpg';
                 }
+            }
+
+            // Obsługa myszki (komputer)
+            ocImg.addEventListener('mousedown', (e) => {
+                startDrag(e.clientX, e.clientY);
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                moveDrag(e.clientX, e.clientY);
             });
 
             window.addEventListener('mouseup', () => {
                 isDragging = false;
             });
+
+            // Obsługa dotyku (telefon)
+            ocImg.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                startDrag(touch.clientX, touch.clientY);
+                e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const touch = e.touches[0];
+                moveDrag(touch.clientX, touch.clientY);
+                e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('touchend', () => {
+                isDragging = false;
+            });
         }
+
 
         // --- B. Obsługa rozwijanego menu "File" ---
         const dropdown = document.querySelector('.dropdown');
