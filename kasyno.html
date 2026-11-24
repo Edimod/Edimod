@@ -1144,5 +1144,23 @@
         renderAllReels();
         updateUI();
     </script>
+    <script>
+        (function () {
+            const currentBalance = typeof state !== 'undefined' ? state.balance : (typeof balance !== 'undefined' ? balance : 0);
+            if (currentBalance < 10) {
+                if (typeof state !== 'undefined') {
+                    state.requiredClicks = 5;
+                    if (typeof saveRequiredClicks === 'function') saveRequiredClicks(5);
+                } else if (typeof requiredClicks !== 'undefined') {
+                    requiredClicks = 5;
+                    localStorage.setItem('edimod_req_clicks', '5');
+                }
+
+                const reqEl = document.getElementById('requiredClicks');
+                if (reqEl) reqEl.textContent = '5';
+            }
+        })();
+    </script>
+</body>
 </body>
 </html>
