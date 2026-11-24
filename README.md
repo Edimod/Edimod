@@ -9,4 +9,4 @@ jak GitHub będzie utrzymywał tę usługę. :D
 Strona github pages
 https://edimod.github.io/Edimod/
 To miniaturka :P
-![Miniaturka](https://edimod.sitey.me/edimod-preview.png)
+![Miniaturka](edimod-preview.png)
