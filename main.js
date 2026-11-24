@@ -4,9 +4,10 @@
     // --- 0. REJESTRACJA SERVICE WORKERA EDIMOD PWA ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/Edimod/sw.js', {
-                scope: '/Edimod/'
+            navigator.serviceWorker.register('sw.js', {
+                scope: './'
             })
+
             .then((reg) => {
                 console.log('CO TY TU ROBISZ!', reg);
             })
