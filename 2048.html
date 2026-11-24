@@ -79,6 +79,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
+            gap: 10px;
         }
 
         .controls p {
@@ -86,19 +87,43 @@
             font-size: 14px;
         }
 
-        .restart-btn {
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .restart-btn, .merge-btn, .resume-btn {
             background-color: #8f7a66;
             color: white;
             border: none;
-            padding: 10px 18px;
+            padding: 10px 16px;
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 14px;
         }
 
-        .restart-btn:hover {
+        .restart-btn:hover, .merge-btn:hover, .resume-btn:hover {
             background-color: #9f8b77;
+        }
+
+        .merge-btn {
+            background-color: #edc22e;
+            color: #3c3a32;
+        }
+
+        .merge-btn:hover {
+            background-color: #e0b422;
+        }
+
+        .resume-btn {
+            background-color: #2f9e44;
+            color: #ffffff;
+            display: none;
+        }
+
+        .resume-btn:hover {
+            background-color: #2b8a3e;
         }
 
         .game-container {
@@ -133,6 +158,24 @@
             width: 420px;
             height: 420px;
             pointer-events: none;
+        }
+
+        .game-container.picking-mode .tile-container {
+            pointer-events: auto;
+        }
+
+        .game-container.picking-mode .tile {
+            cursor: pointer;
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+        }
+
+        .game-container.picking-mode .tile:hover {
+            filter: brightness(1.08);
+        }
+
+        .game-container.picking-mode .tile.selected-tile {
+            box-shadow: 0 0 0 4px #2f9e44;
+            filter: brightness(1.12);
         }
 
         .tile {
@@ -188,21 +231,37 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(238, 228, 218, 0.73);
-            display: flex;
+            background: rgba(238, 228, 218, 0.85);
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             border-radius: 8px;
-            display: none;
             z-index: 10;
+            gap: 12px;
+            padding: 20px;
+            text-align: center;
         }
 
         .game-over p {
             font-size: 36px;
             font-weight: bold;
             color: #776e65;
-            margin: 0 0 15px 0;
+            margin: 0;
+        }
+
+        .game-over-sub {
+            font-size: 15px;
+            color: #776e65;
+            margin: 0 0 6px 0;
+            max-width: 320px;
+        }
+
+        .game-over-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         footer {
@@ -255,8 +314,11 @@
         </div>
 
         <div class="controls">
-            <p>Połącz kafelki, aby zdobyć <strong>2048!</strong></p>
-            <button class="restart-btn" onclick="initGame()">Nowa gra</button>
+            <p id="status-text">Połącz kafelki, aby zdobyć <strong>2048!</strong></p>
+            <div class="btn-group">
+                <button class="resume-btn" id="resume-btn" onclick="stopPickingTiles()">Graj dalej</button>
+                <button class="restart-btn" onclick="initGame()">Nowa gra</button>
+            </div>
         </div>
 
         <div class="game-container" id="game-container">
@@ -268,8 +330,12 @@
             </div>
             <div class="tile-container" id="tile-container"></div>
             <div class="game-over" id="game-over">
-                <p>Koniec gry!</p>
-                <button class="restart-btn" onclick="initGame()">Spróbuj ponownie</button>
+                <p id="game-over-title">Koniec gry!</p>
+                <p class="game-over-sub" id="game-over-sub"></p>
+                <div class="game-over-actions">
+                    <button class="merge-btn" id="merge-btn" onclick="startPickingTiles()">Połącz bloki</button>
+                    <button class="restart-btn" onclick="initGame()">Spróbuj ponownie</button>
+                </div>
             </div>
         </div>
     </div>
@@ -286,6 +352,8 @@
         let bestScore = localStorage.getItem('bestScore') || 0;
         let nextId = 1;
         let isAnimating = false;
+        let isPickingTiles = false;
+        let firstSelectedTileId = null;
 
         document.getElementById('best').innerText = bestScore;
 
@@ -293,14 +361,149 @@
             board = Array(SIZE).fill(null).map(() => Array(SIZE).fill(null));
             tiles = [];
             score = 0;
+            isPickingTiles = false;
+            firstSelectedTileId = null;
             updateScore(0);
             document.getElementById('game-over').style.display = 'none';
+            document.getElementById('game-container').classList.remove('picking-mode');
+            document.getElementById('resume-btn').style.display = 'none';
+            document.getElementById('status-text').innerHTML = 'Połącz kafelki, aby zdobyć <strong>2048!</strong>';
             document.getElementById('tile-container').innerHTML = '';
             nextId = 1;
-            
+
             addRandomTile(true);
             addRandomTile(true);
             render();
+        }
+
+        function hasAnyMatchingPair() {
+            const counts = new Map();
+            for (const tile of tiles) {
+                if (tile.toDelete) continue;
+                counts.set(tile.value, (counts.get(tile.value) || 0) + 1);
+            }
+            for (const count of counts.values()) {
+                if (count >= 2) return true;
+            }
+            return false;
+        }
+
+        function triggerGameOverScreen() {
+            isPickingTiles = false;
+            firstSelectedTileId = null;
+            document.getElementById('game-container').classList.remove('picking-mode');
+            document.getElementById('resume-btn').style.display = 'none';
+            document.getElementById('status-text').innerHTML = 'Połącz kafelki, aby zdobyć <strong>2048!</strong>';
+
+            const canMergeAny = hasAnyMatchingPair();
+            const titleEl = document.getElementById('game-over-title');
+            const subEl = document.getElementById('game-over-sub');
+            const mergeBtn = document.getElementById('merge-btn');
+
+            if (canMergeAny) {
+                titleEl.innerText = 'Koniec gry!';
+                subEl.innerText = 'Brak ruchów, ale możesz połączyć dwa takie same bloki z planszy.';
+                mergeBtn.style.display = 'inline-block';
+            } else {
+                titleEl.innerText = 'Pełny Game Over!';
+                subEl.innerText = 'Brak ruchów i brak dwóch bloków o tej samej wartości do połączenia.';
+                mergeBtn.style.display = 'none';
+            }
+
+            document.getElementById('game-over').style.display = 'flex';
+            render();
+        }
+
+        function startPickingTiles() {
+            if (!hasAnyMatchingPair()) {
+                triggerGameOverScreen();
+                return;
+            }
+            isPickingTiles = true;
+            firstSelectedTileId = null;
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('game-container').classList.add('picking-mode');
+            document.getElementById('resume-btn').style.display = 'inline-block';
+            document.getElementById('status-text').innerHTML = 'Łączenie: wybierz <strong>pierwszy blok</strong> lub kliknij <strong>Graj dalej</strong>.';
+            render();
+        }
+
+        function stopPickingTiles() {
+            isPickingTiles = false;
+            firstSelectedTileId = null;
+            document.getElementById('game-container').classList.remove('picking-mode');
+            document.getElementById('resume-btn').style.display = 'none';
+            document.getElementById('status-text').innerHTML = 'Połącz kafelki, aby zdobyć <strong>2048!</strong>';
+            render();
+        }
+
+        function handleTileClick(tileId) {
+            if (!isPickingTiles) return;
+
+            const clickedTile = tiles.find(t => t.id === tileId && !t.toDelete);
+            if (!clickedTile) return;
+
+            if (firstSelectedTileId === null) {
+                firstSelectedTileId = tileId;
+                document.getElementById('status-text').innerHTML = `Wybrano <strong>${clickedTile.value}</strong> — kliknij drugi blok <strong>${clickedTile.value}</strong>.`;
+                render();
+                return;
+            }
+
+            if (firstSelectedTileId === tileId) {
+                firstSelectedTileId = null;
+                document.getElementById('status-text').innerHTML = 'Odznaczono — wybierz <strong>pierwszy blok</strong> lub kliknij <strong>Graj dalej</strong>.';
+                render();
+                return;
+            }
+
+            const firstTile = tiles.find(t => t.id === firstSelectedTileId && !t.toDelete);
+            if (!firstTile) {
+                firstSelectedTileId = tileId;
+                render();
+                return;
+            }
+
+            if (firstTile.value !== clickedTile.value) {
+                document.getElementById('status-text').innerHTML = `Wybierz blok o tej samej wartości (<strong>${firstTile.value}</strong>).`;
+                return;
+            }
+
+            // Łączymy pierwszy blok z drugim wybranym blokiem
+            const newValue = firstTile.value * 2;
+            if (board[firstTile.r] && board[firstTile.r][firstTile.c] && board[firstTile.r][firstTile.c].id === firstTile.id) {
+                board[firstTile.r][firstTile.c] = null;
+            }
+
+            clickedTile.value = newValue;
+            board[clickedTile.r][clickedTile.c] = clickedTile;
+            tiles = tiles.filter(t => t.id !== firstTile.id);
+
+            const firstEl = document.getElementById(`tile-${firstTile.id}`);
+            if (firstEl) firstEl.remove();
+
+            updateScore(newValue);
+            firstSelectedTileId = null;
+
+            render();
+
+            const targetEl = document.getElementById(`tile-${clickedTile.id}`);
+            if (targetEl) {
+                targetEl.classList.remove('tile-merged');
+                void targetEl.offsetWidth;
+                targetEl.classList.add('tile-merged');
+            }
+
+            // Po połączeniu sprawdzamy, czy są jeszcze jakieś pary do łączenia
+            if (!hasAnyMatchingPair()) {
+                if (checkGameOver()) {
+                    triggerGameOverScreen();
+                } else {
+                    stopPickingTiles();
+                }
+            } else {
+                document.getElementById('status-text').innerHTML = 'Połączono! Możesz połączyć <strong>kolejne bloki</strong> lub kliknąć <strong>Graj dalej</strong>.';
+            }
         }
 
         function addRandomTile(isInitial = false) {
@@ -348,6 +551,7 @@
                 if (!el) {
                     el = document.createElement('div');
                     el.id = `tile-${tile.id}`;
+                    el.addEventListener('click', () => handleTileClick(tile.id));
                     container.appendChild(el);
                     if (tile.isNew) {
                         el.classList.add('tile-new');
@@ -355,7 +559,8 @@
                 }
 
                 let valClass = tile.value <= 2048 ? `tile-${tile.value}` : 'tile-super';
-                el.className = `tile ${valClass}`;
+                const isSelected = isPickingTiles && tile.id === firstSelectedTileId;
+                el.className = `tile ${valClass}${isSelected ? ' selected-tile' : ''}`;
                 el.innerText = tile.value;
                 el.style.transform = `translate(${tile.c * step}px, ${tile.r * step}px)`;
             });
@@ -372,12 +577,11 @@
         }
 
         function move(direction) {
-            if (isAnimating) return;
-            
+            if (isAnimating || isPickingTiles) return;
+
             let moved = false;
             let addedScore = 0;
 
-            // Reset stanów kafelków
             tiles.forEach(t => {
                 t.isNew = false;
                 t.mergedInto = null;
@@ -401,7 +605,6 @@
                         let curR = r;
                         let curC = c;
 
-                        // Szukanie najdalszego wolnego pola lub pola do scalenia
                         while (true) {
                             let nextR = curR + vR;
                             let nextC = curC + vC;
@@ -423,11 +626,10 @@
 
                         let targetTile = newBoard[curR][curC];
                         if (targetTile && targetTile.value === tile.value && !targetTile.mergedInto) {
-                            // Scalenie
                             tile.r = curR;
                             tile.c = curC;
                             tile.toDelete = true;
-                            
+
                             targetTile.value *= 2;
                             targetTile.mergedInto = true;
                             addedScore += targetTile.value;
@@ -451,9 +653,7 @@
                 render();
 
                 setTimeout(() => {
-                    // Po animacji przesuwania usuwamy kafelki scalone i tworzymy nowy
                     tiles = tiles.filter(t => !t.toDelete);
-                    // Odświeżamy referencje w tablicy board
                     board = Array(SIZE).fill(null).map(() => Array(SIZE).fill(null));
                     tiles.forEach(t => board[t.r][t.c] = t);
 
@@ -462,7 +662,7 @@
                     isAnimating = false;
 
                     if (checkGameOver()) {
-                        document.getElementById('game-over').style.display = 'flex';
+                        triggerGameOverScreen();
                     }
                 }, 160);
             }
@@ -482,6 +682,7 @@
 
         // Sterowanie klawiaturą
         document.addEventListener('keydown', e => {
+            if (isPickingTiles) return;
             switch(e.key) {
                 case 'ArrowLeft': move('left'); e.preventDefault(); break;
                 case 'ArrowRight': move('right'); e.preventDefault(); break;
@@ -496,14 +697,16 @@
         const gameContainer = document.getElementById('game-container');
 
         gameContainer.addEventListener('touchstart', e => {
+            if (isPickingTiles) return;
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
         }, { passive: true });
 
         gameContainer.addEventListener('touchend', e => {
+            if (isPickingTiles) return;
             let touchEndX = e.changedTouches[0].clientX;
             let touchEndY = e.changedTouches[0].clientY;
-            
+
             let dx = touchEndX - touchStartX;
             let dy = touchEndY - touchStartY;
 
