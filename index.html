@@ -94,7 +94,7 @@
 
         /* Przeciągalny OC */
         .draggable-oc {
-            position: absolute;
+            position: fixed;
             bottom: 50px;
             right: 50px;
             width: 120px;
@@ -103,6 +103,22 @@
             cursor: grab;
             user-select: none;
             -webkit-user-drag: none;
+            touch-action: none;
+        }
+
+        .draggable-oc:active {
+            cursor: grabbing;
+        }
+
+        /* Mniejszy OC na telefonach */
+        @media (max-width: 600px) {
+            .draggable-oc {
+                width: 70px;
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+
         }
 
         .draggable-oc:active {
