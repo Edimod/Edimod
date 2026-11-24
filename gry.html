@@ -28,8 +28,121 @@
 
         header {
             margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
+        .section-title {
+            font-size: 2.5rem;
+            color: #2c3e50;
+        }
+
+        /* --- STYL PORTFELA I PRZYCISKU DOŁADUJ --- */
+        .wallet-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background-color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .balance-display {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .btn-topup {
+            padding: 8px 16px;
+            background-color: #f39c12;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        .btn-topup:hover {
+            background-color: #e67e22;
+            transform: scale(1.05);
+        }
+
+        /* --- OKIENKO (MODAL) DOŁADOWANIA --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-box {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            border: 3px solid #3498db;
+        }
+
+        .modal-box h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .click-area {
+            margin: 20px 0;
+            padding: 35px 20px;
+            background-color: #ecf0f1;
+            border: 3px dashed #3498db;
+            border-radius: 12px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.1s ease, transform 0.05s ease;
+        }
+
+        .click-area:active {
+            transform: scale(0.97);
+            background-color: #d6eaf8;
+        }
+
+        .click-counter {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2980b9;
+            margin-top: 10px;
+        }
+
+        .btn-close {
+            padding: 8px 20px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-close:hover {
+            background-color: #c0392b;
+        }
+
+        /* --- RESZTA TWOICH STYLI --- */
         footer {
             margin-top: 40px;
         }
@@ -49,18 +162,12 @@
             background-color: #1a252f;
         }
 
-        .section-title {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            color: #2c3e50;
-        }
-
         .games-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 20px;
-        width: 100%;
-    }
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
 
         .game-card {
             display: flex;
@@ -96,27 +203,28 @@
 
     <header>
         <h1 class="section-title">Gry</h1>
+        
+        <!-- Panel zarabiania -->
+        <div class="wallet-panel">
+            <span class="balance-display">💰 <span id="balance">0</span> monet</span>
+            <button class="btn-topup" id="openTopupBtn">➕ Doładuj</button>
+        </div>
     </header>
 
     <main>
         <div class="games-grid">
-
             <a href="UNDERTALE.html" class="game-card">
                 <span class="game-icon">❤️</span>
                 <span>Undertale</span>
             </a>
-            
             <a href="zgadywanki.html" class="game-card">
                 <span class="game-icon">❓</span>
                 <span>Zgadywanki</span>
             </a>
-
             <a href="snake.html" class="game-card">
                 <span class="game-icon">🐍</span>
                 <span>Snake</span>
             </a>
-
-
             <a href="minecraf.html" class="game-card">
                 <span class="game-icon">⛏️</span>
                 <span>Minecraft v.26.2</span>
@@ -177,22 +285,101 @@
                 <span class="game-icon">⛏️</span>
                 <span>Terraria</span>
             </a>  
-        <a href="pepeco.html" class="game-card">
-            <span class="game-icon">🎬</span>
-            <span>Pepco</span>
-        </a>
+            <a href="pepeco.html" class="game-card">
+                <span class="game-icon">🎬</span>
+                <span>Pepco</span>
+            </a>
         </div>
     </main>
 
-        <footer>
+    <footer>
         <a href="index.html" class="btn-home">← Strona główna</a>
     </footer>
+
+    <!-- Okienko doładowania -->
+    <div class="modal-overlay" id="topupModal">
+        <div class="modal-box">
+            <h2>Doładowanie konta</h2>
+            <p>Klikaj <strong>PRAWYM</strong> przyciskiem myszy w pole poniżej, aby zdobyć +10 monet!</p>
+            
+            <div class="click-area" id="rightClickZone">
+                <div>🖱️ Kliknij tutaj PRAWYM!</div>
+                <div class="click-counter">
+                    <span id="currentClicks">0</span> / <span id="requiredClicks">5</span>
+                </div>
+            </div>
+
+            <button class="btn-close" id="closeTopupBtn">Zamknij</button>
+        </div>
+    </div>
 
     <div class="custom-cursor site-wide"></div>
 
     <script src="main.js"></script>
     <script>
-    document.querySelector('.custom-cursor').style.pointerEvents = 'none';
+        const cursor = document.querySelector('.custom-cursor');
+        if (cursor) cursor.style.pointerEvents = 'none';
+
+        // --- LOGIKA SYSTEMU ZARABIANIA ---
+        // Pobieramy zapisane dane z pamięci przeglądarki lub ustawiamy wartości początkowe
+        let balance = parseInt(localStorage.getItem('edimod_balance')) || 0;
+        let requiredClicks = parseInt(localStorage.getItem('edimod_req_clicks')) || 5;
+        let currentClicks = 0;
+        const rewardAmount = 10; // Ile monet dostaje gracz za jedno doładowanie
+
+        // Elementy ze strony
+        const balanceEl = document.getElementById('balance');
+        const currentClicksEl = document.getElementById('currentClicks');
+        const requiredClicksEl = document.getElementById('requiredClicks');
+        const modal = document.getElementById('topupModal');
+        const rightClickZone = document.getElementById('rightClickZone');
+
+        // Funkcja aktualizująca widok i zapisująca postęp
+        function updateUI() {
+            balanceEl.textContent = balance;
+            currentClicksEl.textContent = currentClicks;
+            requiredClicksEl.textContent = requiredClicks;
+            
+            localStorage.setItem('edimod_balance', balance);
+            localStorage.setItem('edimod_req_clicks', requiredClicks);
+        }
+
+        // Otwieranie okienka
+        document.getElementById('openTopupBtn').addEventListener('click', () => {
+            currentClicks = 0; // Resetuje licznik przy otwarciu
+            updateUI();
+            modal.style.display = 'flex';
+        });
+
+        // Zamykanie okienka
+        document.getElementById('closeTopupBtn').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Obsługa klikania PRAWYM przyciskiem myszy (zdarzenie 'contextmenu')
+        rightClickZone.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // Blokuje wyskakiwanie menu przeglądarki pod prawym przyciskiem
+
+            currentClicks++;
+
+            // Sprawdzenie, czy osiągnięto wymaganą liczbę kliknięć
+            if (currentClicks >= requiredClicks) {
+                balance += rewardAmount; // Dodaje monety
+                requiredClicks += 5;     // Zwiększa wymagania na następny raz (5 -> 10 -> 15 -> 20...)
+                currentClicks = 0;       // Zeruje postęp obecnego paska
+                
+                // Krótki efekt wizualny po doładowaniu
+                rightClickZone.style.backgroundColor = '#abebc6';
+                setTimeout(() => {
+                    rightClickZone.style.backgroundColor = '#ecf0f1';
+                }, 200);
+            }
+
+            updateUI();
+        });
+
+        // Uruchomienie przy starcie strony
+        updateUI();
     </script>
 </body>
 </html>
