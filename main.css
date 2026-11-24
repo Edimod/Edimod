@@ -5,10 +5,11 @@ box-sizing: border-box;
 }
 
 html, body {
-    cursor: none; /* Całkowicie ukrywamy kursor systemowy na całej stronie */
-    height: 100vh;
+    cursor: none;
+    min-height: 100%;
     width: 100%;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     background-color: #ffffff;
 }
 
