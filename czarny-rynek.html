@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Czarny Rynek — Edimod</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at top, #1d1424 0%, #0b0d14 65%);
+            color: #f1f5f9;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        header {
+            max-width: 980px;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            background: rgba(18, 22, 36, 0.92);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            padding: 16px 20px;
+            border-radius: 16px;
+        }
+
+        h1 {
+            font-size: 1.9rem;
+            color: #e879f9;
+        }
+
+        .sub {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .balances {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .wallet-box {
+            background: #090c14;
+            border: 1px solid rgba(52, 211, 153, 0.4);
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-weight: bold;
+            color: #34d399;
+            font-size: 1rem;
+        }
+
+        .wallet-box.illegal-bal {
+            border-color: rgba(251, 113, 133, 0.45);
+            color: #fb7185;
+        }
+
+        .btn-back {
+            display: inline-block;
+            padding: 9px 16px;
+            background: #1e293b;
+            color: #f8fafc;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: bold;
+            border: 1px solid #334155;
+        }
+
+        .btn-back:hover {
+            background: #334155;
+        }
+
+        .rules-board {
+            max-width: 980px;
+            margin: 0 auto 20px;
+            background: rgba(30, 17, 45, 0.85);
+            border: 2px solid #f59e0b;
+            border-radius: 16px;
+            padding: 16px 20px;
+        }
+
+        .rules-board h2 {
+            color: #fbbf24;
+            font-size: 1.15rem;
+            margin-bottom: 8px;
+        }
+
+        .rules-board ul {
+            padding-left: 20px;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .toast {
+            max-width: 980px;
+            margin: 0 auto 18px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            color: #a7f3d0;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .toast.danger {
+            background: rgba(153, 27, 27, 0.35);
+            border-color: #f87171;
+            color: #fecaca;
+        }
+
+        main {
+            max-width: 980px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: #121726;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .card.illegal {
+            border-color: rgba(244, 63, 94, 0.45);
+            background: linear-gradient(180deg, rgba(40, 13, 28, 0.75) 0%, #121726 100%);
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            color: #f8fafc;
+            margin-bottom: 6px;
+        }
+
+        .card p {
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        .price-tag {
+            font-weight: bold;
+            color: #fbbf24;
+            font-size: 1rem;
+        }
+
+        button.buy-btn {
+            width: 100%;
+            padding: 11px 14px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            background: #9333ea;
+            color: #fff;
+            transition: transform 0.1s ease, background 0.2s ease;
+        }
+
+        button.buy-btn:hover:not(:disabled) {
+            background: #a855f7;
+            transform: translateY(-2px);
+        }
+
+        button.buy-btn:disabled {
+            background: #334155;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .sold-out-box {
+            background: rgba(153, 27, 27, 0.35);
+            border: 1px solid #f87171;
+            color: #fecaca;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .countdown {
+            font-weight: bold;
+            color: #fde047;
+            font-size: 1.05rem;
+            margin-top: 4px;
+        }
+
+        .jail-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 15, 0.95);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .jail-box {
+            max-width: 460px;
+            background: #1a0c12;
+            border: 2px solid #ef4444;
+            border-radius: 20px;
+            padding: 28px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <a href="gry.html" class="btn-back">← Powrót do gier</a>
+            <h1 style="margin-top: 10px;">🕵️ Czarny Rynek Edimod</h1>
+            <p class="sub">Nieoficjalne wspomagacze, kontrabanda acoins i policyjne ryzyko</p>
+        </div>
+        <div class="balances">
+            <div class="wallet-box">🪙 <span id="ecoinsBalance">0</span> ecoins</div>
+            <div class="wallet-box illegal-bal">🏴‍☠️ <span id="acoinsBalance">0</span> acoins</div>
+        </div>
+    </header>
+
+    <section class="rules-board">
+        <h2>📋 Tabliczka zasad Czarnego Rynku</h2>
+        <ul>
+            <li><strong>Autokliker (50 ecoins):</strong> automatycznie klika prawym przyciskiem w oknie doładowania ecoins.</li>
+            <li><strong>Kontrabanda acoins (10 acoins = 7 ecoins):</strong> nielegalna waluta tylko do kasyna. Limit to <strong>50 acoins</strong> na 24h — po wyczerpaniu pojawia się tabliczka <em>„Zapraszamy jutro”</em> i zegar.</li>
+            <li><strong>Magnes do dzwonków 🔔 (10 acoins):</strong> kupujesz wyłącznie za <code>acoins</code> (nie za ecoins); przez 3 spiny zwiększa szansę na 🔔.</li>
+            <li><strong>Policja i więzienie:</strong> powyżej <strong>30 acoins</strong> policja ma <strong>40% (40/100)</strong> szansy na kontrolę; powyżej <strong>350 acoins</strong> wpadka oznacza <strong>więzienie na 24 godziny</strong> z blokadą wejścia do <code>gry.html</code>!</li>
+        </ul>
+    </section>
+
+    <div id="toast" class="toast"></div>
+
+    <main>
+        <div class="card">
+            <div>
+                <h2>🤖 Autokliker</h2>
+                <p>Automatycznie klika prawym przyciskiem w oknie doładowania ecoins, gdy je otworzysz.</p>
+            </div>
+            <div>
+                <div class="price-tag" style="margin-bottom: 10px;">Cena: 50 ecoins</div>
+                <button id="buyAutoclickerBtn" class="buy-btn" onclick="buyAutoclicker()">Kup Autokliker (50 ecoins)</button>
+            </div>
+        </div>
+
+        <div class="card illegal">
+            <div>
+                <h2>🏴‍☠️ Kontrabanda: acoins</h2>
+                <p>Dostępna tylko w kasynie (ukryta w <code>gry.html</code>). Limit: <strong>50 acoins</strong> na 24h.</p>
+                <p class="sub" style="margin-top: 8px;">Kupiono w cyklu: <strong id="boughtTodayText">0</strong> / 50 acoins</p>
+            </div>
+
+            <div id="acoinsActiveControls">
+                <div class="price-tag" style="margin-bottom: 10px;">Pakiet: 10 acoins = 7 ecoins</div>
+                <button id="buyAcoinsBtn" class="buy-btn" onclick="buyAcoinsPack()">Kup 10 acoins (7 ecoins)</button>
+            </div>
+
+            <div id="acoinsSoldOutBox" class="sold-out-box" style="display: none;">
+                <div>🚫 <strong>Wyprzedane — zapraszamy jutro!</strong></div>
+                <div class="countdown" id="resetTimerText">24:00:00</div>
+            </div>
+        </div>
+
+        <div class="card illegal">
+            <div>
+                <h2>🔔 Magnes do dzwonków</h2>
+                <p>Nie kupisz go za ecoins! Tylko za <strong>acoins</strong>. Zwiększa szansę na 🔔 przez 3 spiny w kasynie.</p>
+                <p class="sub" style="margin-top: 8px;">Aktywne spiny z magnesem: <strong id="bellMagnetSpinsText">0</strong></p>
+            </div>
+            <div>
+                <div class="price-tag" style="margin-bottom: 10px;">Cena: 10 acoins</div>
+                <button id="buyBellMagnetBtn" class="buy-btn" onclick="buyBellMagnet()">Kup Magnes do dzwonków (10 acoins)</button>
+            </div>
+        </div>
+    </main>
+
+    <div id="jailOverlay" class="jail-overlay">
+        <div class="jail-box">
+            <h2 style="color: #f87171; font-size: 1.6rem; margin-bottom: 10px;">🚔 TRAFIŁEŚ DO WIĘZIENIA!</h2>
+            <p style="color: #fecaca; font-size: 0.95rem; line-height: 1.5;">
+                Policja nakryła Cię z ponad 350 acoins. Dostęp do czarnego rynku oraz <code>gry.html</code> jest zablokowany na 24 godziny.
+            </p>
+            <div class="countdown" id="jailTimerText" style="font-size: 1.4rem; margin-top: 14px;">24:00:00</div>
+        </div>
+    </div>
+
+    <script>
+        const DAY_MS = 24 * 60 * 60 * 1000;
+        const ACOINS_LIMIT = 50;
+        const ACOINS_PACK = 10;
+        const ACOINS_COST_ECOINS = 7;
+        const BELL_MAGNET_COST_ACOINS = 10;
+        const POLICE_CHECK_THRESHOLD = 30;
+        const JAIL_THRESHOLD = 350;
+
+        const KEYS = {
+            balance: 'edimod_balance',
+            autoclicker: 'edimod_autoclicker',
+            acoins: 'edimod_acoins',
+            boughtToday: 'edimod_acoins_bought_today',
+            resetAt: 'edimod_acoins_reset_at',
+            bellMagnetSpins: 'edimod_bell_magnet_spins',
+            jailUntil: 'edimod_jail_until'
+        };
+
+        function getInt(key, fallback = 0) {
+            const val = parseInt(localStorage.getItem(key) || String(fallback), 10);
+            return Number.isNaN(val) ? fallback : val;
+        }
+
+        function showToast(msg, danger = false) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = danger ? 'toast danger' : 'toast';
+            el.style.display = 'block';
+        }
+
+        function formatRemaining(ms) {
+            const totalSec = Math.max(0, Math.floor(ms / 1000));
+            const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+            const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+            const s = String(totalSec % 60).padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        function checkAcoinsReset() {
+            const resetAt = getInt(KEYS.resetAt, 0);
+            const bought = getInt(KEYS.boughtToday, 0);
+            if (bought >= ACOINS_LIMIT && resetAt > 0 && Date.now() >= resetAt) {
+                localStorage.setItem(KEYS.boughtToday, '0');
+                localStorage.setItem(KEYS.resetAt, '0');
+            }
+        }
+
+        function checkPoliceAndJail() {
+            const acoins = getInt(KEYS.acoins, 0);
+            const jailUntil = getInt(KEYS.jailUntil, 0);
+
+            if (jailUntil > Date.now()) {
+                return true;
+            }
+
+            if (acoins > POLICE_CHECK_THRESHOLD) {
+                if (Math.random() < 0.40) {
+                    if (acoins > JAIL_THRESHOLD) {
+                        const until = Date.now() + DAY_MS;
+                        localStorage.setItem(KEYS.jailUntil, String(until));
+                        return true;
+                    } else {
+                        const fine = Math.min(acoins, 10);
+                        localStorage.setItem(KEYS.acoins, String(acoins - fine));
+                        showToast(`🚨 Kontrola policji! Masz więcej niż 30 acoins — skonfiskowano ${fine} acoins (zostało ${acoins - fine} acoins).`, true);
+                    }
+                }
+            }
+            return false;
+        }
+
+        function updateUI() {
+            checkAcoinsReset();
+
+            const jailUntil = getInt(KEYS.jailUntil, 0);
+            const jailOverlay = document.getElementById('jailOverlay');
+            if (jailUntil > Date.now()) {
+                jailOverlay.style.display = 'flex';
+                document.getElementById('jailTimerText').textContent = formatRemaining(jailUntil - Date.now());
+                return;
+            } else {
+                jailOverlay.style.display = 'none';
+            }
+
+            const ecoins = Math.max(0, getInt(KEYS.balance, 0));
+            const acoins = Math.max(0, getInt(KEYS.acoins, 0));
+            const hasAuto = localStorage.getItem(KEYS.autoclicker) === '1';
+            const bought = getInt(KEYS.boughtToday, 0);
+            const resetAt = getInt(KEYS.resetAt, 0);
+            const bellSpins = getInt(KEYS.bellMagnetSpins, 0);
+
+            document.getElementById('ecoinsBalance').textContent = ecoins;
+            document.getElementById('acoinsBalance').textContent = acoins;
+            document.getElementById('boughtTodayText').textContent = bought;
+            document.getElementById('bellMagnetSpinsText').textContent = bellSpins;
+
+            const autoBtn = document.getElementById('buyAutoclickerBtn');
+            if (hasAuto) {
+                autoBtn.textContent = '✅ Autokliker aktywny';
+                autoBtn.disabled = true;
+            } else {
+                autoBtn.textContent = 'Kup Autokliker (50 ecoins)';
+                autoBtn.disabled = ecoins < 50;
+            }
+
+            const activeBox = document.getElementById('acoinsActiveControls');
+            const soldOutBox = document.getElementById('acoinsSoldOutBox');
+            if (bought >= ACOINS_LIMIT && resetAt > Date.now()) {
+                activeBox.style.display = 'none';
+                soldOutBox.style.display = 'block';
+                document.getElementById('resetTimerText').textContent = formatRemaining(resetAt - Date.now());
+            } else {
+                activeBox.style.display = 'block';
+                soldOutBox.style.display = 'none';
+                document.getElementById('buyAcoinsBtn').disabled = ecoins < ACOINS_COST_ECOINS || (bought + ACOINS_PACK) > ACOINS_LIMIT;
+            }
+
+            const bellBtn = document.getElementById('buyBellMagnetBtn');
+            bellBtn.disabled = acoins < BELL_MAGNET_COST_ACOINS;
+        }
+
+        function buyAutoclicker() {
+            const ecoins = getInt(KEYS.balance, 0);
+            if (ecoins < 50 || localStorage.getItem(KEYS.autoclicker) === '1') return;
+            localStorage.setItem(KEYS.balance, String(ecoins - 50));
+            localStorage.setItem(KEYS.autoclicker, '1');
+            showToast('Kupiono Autokliker! Automatycznie klika prawym w oknie doładowania.');
+            updateUI();
+        }
+
+        function buyAcoinsPack() {
+            checkAcoinsReset();
+            const ecoins = getInt(KEYS.balance, 0);
+            const bought = getInt(KEYS.boughtToday, 0);
+            if (ecoins < ACOINS_COST_ECOINS || (bought + ACOINS_PACK) > ACOINS_LIMIT) return;
+
+            localStorage.setItem(KEYS.balance, String(ecoins - ACOINS_COST_ECOINS));
+            const nextAcoins = getInt(KEYS.acoins, 0) + ACOINS_PACK;
+            localStorage.setItem(KEYS.acoins, String(nextAcoins));
+
+            const nextBought = bought + ACOINS_PACK;
+            localStorage.setItem(KEYS.boughtToday, String(nextBought));
+            if (nextBought >= ACOINS_LIMIT) {
+                localStorage.setItem(KEYS.resetAt, String(Date.now() + DAY_MS));
+            }
+
+            showToast(`Kupiono +${ACOINS_PACK} acoins za ${ACOINS_COST_ECOINS} ecoins.`);
+            checkPoliceAndJail();
+            updateUI();
+        }
+
+        function buyBellMagnet() {
+            const acoins = getInt(KEYS.acoins, 0);
+            if (acoins < BELL_MAGNET_COST_ACOINS) return;
+            localStorage.setItem(KEYS.acoins, String(acoins - BELL_MAGNET_COST_ACOINS));
+            const nextSpins = getInt(KEYS.bellMagnetSpins, 0) + 3;
+            localStorage.setItem(KEYS.bellMagnetSpins, String(nextSpins));
+            showToast('Kupiono Magnes do dzwonków (+3 podkręcone spiny w kasynie).');
+            checkPoliceAndJail();
+            updateUI();
+        }
+
+        updateUI();
+        setInterval(updateUI, 1000);
+    </script>
+</body>
+</html>
