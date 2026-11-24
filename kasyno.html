@@ -48,7 +48,6 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* Złota metaliczna obudowa i ramki */
         .gold-bezel {
             background: linear-gradient(145deg, #f3d373 0%, #a67c1e 28%, #ffe89e 50%, #7d5910 78%, #d4af37 100%);
             box-shadow:
@@ -62,7 +61,6 @@
             box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08), inset 0 -10px 25px rgba(0, 0, 0, 0.75);
         }
 
-        /* Lampki kasynowe na górnym panelu */
         .marquee-bulb {
             width: 10px;
             height: 10px;
@@ -99,7 +97,6 @@
             }
         }
 
-        /* Okno bębnów z głębią i cieniem wewnętrznym */
         .reel-window {
             background: linear-gradient(180deg, #05070e 0%, #101629 22%, #17203a 50%, #101629 78%, #05070e 100%);
             box-shadow:
@@ -139,7 +136,6 @@
             }
         }
 
-        /* Płynne pionowe przewijanie bębna */
         .reel-strip {
             display: flex;
             flex-direction: column;
@@ -151,7 +147,6 @@
             transform: scaleY(1.06);
         }
 
-        /* Efekt zatrzymania bębna (delikatne odbicie mechaniczne) */
         .reel-landed {
             animation: reelBounce 0.24s cubic-bezier(0.22, 1, 0.36, 1);
         }
@@ -162,7 +157,6 @@
             100% { transform: translateY(0); }
         }
 
-        /* Podświetlenie wygrywającego środkowego wiersza */
         .payline-guide {
             position: absolute;
             left: 0;
@@ -217,7 +211,6 @@
             100% { transform: scale(1.02); }
         }
 
-        /* Przycisk ZAKRĘĆ */
         .spin-btn {
             background: linear-gradient(180deg, #ff3b6b 0%, #e11d48 52%, #9f1239 100%);
             box-shadow:
@@ -247,7 +240,6 @@
             opacity: 0.7;
         }
 
-        /* Animacja banera wygranej */
         .win-banner-pop {
             animation: bannerPop 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
@@ -257,7 +249,6 @@
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* Subtelny scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -274,23 +265,22 @@
 </head>
 <body class="py-4 px-3 sm:py-6 sm:px-6 flex flex-col items-center justify-center">
 
-    <!-- Główny kontener aplikacji -->
     <main class="w-full max-w-6xl mx-auto space-y-4">
 
-        <!-- Górny pasek informacyjny i przełącznik dźwięku -->
+        <!-- Górny pasek informacyjny i powrót do gier -->
         <header class="flex flex-wrap items-center justify-between gap-3 bg-slate-900/75 border border-amber-500/25 rounded-2xl px-4 py-3 backdrop-blur-md">
             <div class="flex items-center gap-3">
-                <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-400/40 text-amber-300 text-lg">
-                    🏛️
-                </span>
+                <a href="gry.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600/50 text-xs font-semibold text-slate-200 transition">
+                    ← Gry
+                </a>
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="font-display font-bold tracking-wider text-amber-300 text-sm sm:text-base">GRAND SALON 777</span>
                         <span class="text-[11px] uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">
-                            Wirtualne środki
+                            Portfel zsynchronizowany
                         </span>
                     </div>
-                    <p class="text-xs text-slate-400">Symulator automatu slotowego • Wyłącznie do celów rozrywkowych (bez prawdziwych pieniędzy)</p>
+                    <p class="text-xs text-slate-400">Symulator automatu slotowego • Wirtualne monety wspólne z listą gier</p>
                 </div>
             </div>
 
@@ -308,20 +298,19 @@
             </div>
         </header>
 
-        <!-- Komunikat systemowy (zastępstwo dla alert/confirm) -->
+        <!-- Komunikat systemowy -->
         <div id="statusToast" class="hidden rounded-xl px-4 py-2.5 text-xs sm:text-sm font-medium border flex items-center justify-between gap-3 transition-all">
             <span id="statusToastText"></span>
             <button type="button" onclick="hideToast()" class="text-xs opacity-75 hover:opacity-100 px-2 py-0.5 rounded bg-black/20 cursor-pointer">✕</button>
         </div>
 
-        <!-- Główny układ: Automat po lewej/środku + Tabela wypłat i Historia po prawej -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
-            <!-- LEWA / GŁÓWNA KOLUMNA: MASZYNA SLOTOWA -->
+            <!-- LEWA KOLUMNA: MASZYNA SLOTOWA -->
             <section class="lg:col-span-7 gold-bezel rounded-[28px] p-1.5 sm:p-2">
                 <div class="cabinet-shell rounded-[22px] p-4 sm:p-6 space-y-5">
 
-                    <!-- Górny panel świetlny (Marquee) -->
+                    <!-- Górny panel świetlny -->
                     <div class="relative bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-400/35 rounded-2xl p-3.5 sm:p-4 overflow-hidden">
                         <div id="topBulbs" class="flex items-center justify-between gap-1 mb-2.5 px-1"></div>
 
@@ -341,59 +330,50 @@
 
                     <!-- Wskaźniki Salda, Stawki i Ostatniej Wygranej -->
                     <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
-                        <!-- Saldo -->
                         <div class="bg-slate-950/90 border border-amber-500/25 rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
                             <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Saldo</span>
                             <div class="mt-1 flex items-baseline gap-1">
-                                <span id="balanceDisplay" class="font-mono-num text-lg sm:text-2xl font-extrabold text-emerald-400">1000</span>
-                                <span class="text-xs font-bold text-emerald-500/80">zł</span>
+                                <span id="balanceDisplay" class="font-mono-num text-lg sm:text-2xl font-extrabold text-emerald-400">0</span>
+                                <span class="text-xs font-bold text-emerald-500/80">monet</span>
                             </div>
                         </div>
 
-                        <!-- Aktualna stawka -->
                         <div class="bg-slate-950/90 border border-amber-500/25 rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between">
                             <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Stawka</span>
                             <div class="mt-1 flex items-baseline gap-1">
                                 <span id="betDisplay" class="font-mono-num text-lg sm:text-2xl font-extrabold text-amber-300">25</span>
-                                <span class="text-xs font-bold text-amber-400/75">zł</span>
+                                <span class="text-xs font-bold text-amber-400/75">monet</span>
                             </div>
                         </div>
 
-                        <!-- Ostatnia wygrana -->
                         <div id="lastWinCard" class="bg-slate-950/90 border border-amber-500/25 rounded-2xl p-3 sm:p-3.5 flex flex-col justify-between transition">
                             <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Wygrana</span>
                             <div class="mt-1 flex items-baseline gap-1">
                                 <span id="winCounterDisplay" class="font-mono-num text-lg sm:text-2xl font-extrabold text-yellow-300">0</span>
-                                <span class="text-xs font-bold text-yellow-400/75">zł</span>
+                                <span class="text-xs font-bold text-yellow-400/75">monet</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Okno bębnów (3 bębny, po 3 widoczne rzędy z wyróżnioną linią środkową) -->
+                    <!-- Okno bębnów -->
                     <div class="relative bg-slate-950 border-2 border-amber-500/45 rounded-2xl p-3 sm:p-4 shadow-inner">
-                        <!-- Znaczniki linii wygranej po bokach -->
                         <div class="hidden sm:flex items-center justify-between absolute left-1 right-1 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
                             <span class="w-6 h-6 rounded-full bg-rose-600 border-2 border-amber-300 text-[10px] font-extrabold text-white flex items-center justify-center shadow-lg">▶</span>
                             <span class="w-6 h-6 rounded-full bg-rose-600 border-2 border-amber-300 text-[10px] font-extrabold text-white flex items-center justify-center shadow-lg">◀</span>
                         </div>
 
                         <div id="reelsStage" class="relative grid grid-cols-3 gap-2 sm:gap-3.5">
-                            <!-- Prowadnica linii wygranej -->
                             <div class="payline-guide rounded-xl"></div>
-                            <!-- Laserowy promień linii wygranej przy trafieniu -->
                             <div class="payline-laser"></div>
 
-                            <!-- Bęben 1 -->
                             <div id="reelCol0" class="reel-column reel-window relative rounded-xl border-2 border-amber-400/35 overflow-hidden">
                                 <div id="reelStrip0" class="reel-strip"></div>
                             </div>
 
-                            <!-- Bęben 2 -->
                             <div id="reelCol1" class="reel-column reel-window relative rounded-xl border-2 border-amber-400/35 overflow-hidden">
                                 <div id="reelStrip1" class="reel-strip"></div>
                             </div>
 
-                            <!-- Bęben 3 -->
                             <div id="reelCol2" class="reel-column reel-window relative rounded-xl border-2 border-amber-400/35 overflow-hidden">
                                 <div id="reelStrip2" class="reel-strip"></div>
                             </div>
@@ -405,7 +385,7 @@
                         </div>
                     </div>
 
-                    <!-- Tablica komunikatów / wygranej -->
+                    <!-- Tablica komunikatów -->
                     <div id="messageBanner" class="bg-slate-950/95 border border-amber-400/30 rounded-2xl px-4 py-3 text-center min-h-[58px] flex flex-col items-center justify-center">
                         <p id="resultMessage" class="text-sm sm:text-base font-bold text-amber-300">
                             Wybierz stawkę i naciśnij ZAKRĘĆ lub spację!
@@ -415,15 +395,14 @@
                         </p>
                     </div>
 
-                    <!-- Wybór stawki (- / + oraz szybkie kwoty) -->
+                    <!-- Wybór stawki -->
                     <div class="bg-slate-900/75 border border-slate-700/70 rounded-2xl p-3.5 space-y-3">
                         <div class="flex items-center justify-between">
                             <span class="text-xs uppercase tracking-wider font-semibold text-slate-300">Wybór stawki</span>
-                            <span class="text-xs text-slate-400">Dostępne stawki: 10, 25, 50, 100 zł</span>
+                            <span class="text-xs text-slate-400">Dostępne stawki: 10, 25, 50, 100</span>
                         </div>
 
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                            <!-- Przyciski - i + -->
                             <div class="flex items-center gap-2">
                                 <button
                                     id="betDownBtn"
@@ -445,12 +424,11 @@
                                 </button>
                             </div>
 
-                            <!-- Szybkie przyciski stawek -->
                             <div class="grid grid-cols-4 gap-1.5 sm:gap-2 flex-1 min-w-[210px]">
-                                <button type="button" data-bet="10" onclick="selectBet(10)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">10 zł</button>
-                                <button type="button" data-bet="25" onclick="selectBet(25)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">25 zł</button>
-                                <button type="button" data-bet="50" onclick="selectBet(50)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">50 zł</button>
-                                <button type="button" data-bet="100" onclick="selectBet(100)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">100 zł</button>
+                                <button type="button" data-bet="10" onclick="selectBet(10)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">10</button>
+                                <button type="button" data-bet="25" onclick="selectBet(25)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">25</button>
+                                <button type="button" data-bet="50" onclick="selectBet(50)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">50</button>
+                                <button type="button" data-bet="100" onclick="selectBet(100)" class="bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer">100</button>
                             </div>
                         </div>
                     </div>
@@ -469,12 +447,12 @@
                         <button
                             id="topUpBtn"
                             type="button"
-                            onclick="topUpBalance()"
+                            onclick="openTopUpModal()"
                             class="py-3.5 px-4 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-400/45 text-emerald-300 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer"
-                            title="Doładuj wirtualne środki"
+                            title="Doładuj monety klikając prawym przyciskiem"
                         >
-                            <span>💳</span>
-                            <span id="topUpLabel">Doładuj +1000 zł</span>
+                            <span>🖱️</span>
+                            <span id="topUpLabel">Doładuj (+25 monet)</span>
                         </button>
                     </div>
 
@@ -484,7 +462,6 @@
             <!-- PRAWA KOLUMNA: TABELA WYPŁAT I HISTORIA SPINÓW -->
             <aside class="lg:col-span-5 space-y-5">
 
-                <!-- Tabela wypłat (Paytable) -->
                 <div class="bg-slate-900/85 border border-amber-500/30 rounded-3xl p-4 sm:p-5 backdrop-blur-md shadow-xl">
                     <div class="flex items-center justify-between mb-3">
                         <div>
@@ -498,12 +475,9 @@
                         </span>
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5" id="paytableGrid">
-                        <!-- Generowane dynamicznie z konfiguracji symboli -->
-                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5" id="paytableGrid"></div>
                 </div>
 
-                <!-- Historia ostatnich spinów -->
                 <div class="bg-slate-900/85 border border-slate-700/80 rounded-3xl p-4 sm:p-5 backdrop-blur-md shadow-xl">
                     <div class="flex items-center justify-between mb-3">
                         <div>
@@ -532,6 +506,31 @@
         </div>
     </main>
 
+    <!-- Modal doładowania prawym przyciskiem myszy (zsynchronizowany z portfelem) -->
+    <div id="topupModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border-2 border-amber-400/50 rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl">
+            <h2 class="font-display text-xl font-bold text-amber-300">Doładowanie portfela</h2>
+            <p class="text-xs sm:text-sm text-slate-300">
+                Klikaj <strong class="text-amber-300">PRAWYM</strong> przyciskiem myszy w pole poniżej, aby odebrać <strong class="text-emerald-400">+25 monet</strong>. Z każdym doładowaniem limit rośnie o 5!
+            </p>
+
+            <div id="rightClickZone" class="py-8 px-4 rounded-2xl bg-slate-950 border-2 border-dashed border-amber-400/60 hover:border-amber-300 transition cursor-pointer select-none">
+                <div class="text-sm font-semibold text-slate-200">🖱️ Kliknij PRAWYM przyciskiem tutaj</div>
+                <div class="font-mono-num text-3xl font-extrabold text-amber-300 mt-2">
+                    <span id="currentClicks">0</span> / <span id="requiredClicks">5</span>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onclick="closeTopUpModal()"
+                class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-slate-200 transition cursor-pointer"
+            >
+                Zamknij
+            </button>
+        </div>
+    </div>
+
     <script>
         /* =====================================================================
            1. KONFIGURACJA SYMBOLI, WAG I WYPŁAT
@@ -542,7 +541,7 @@
                 char: '7️⃣',
                 name: 'Siódemka 777',
                 multiplier: 50,
-                weight: 4,          // Najrzadszy symbol (JACKPOT)
+                weight: 4,
                 badgeClass: 'border-rose-500/50 bg-rose-950/35 text-rose-200',
                 rarityLabel: 'Jackpot (rzadki)'
             },
@@ -551,7 +550,7 @@
                 char: '💎',
                 name: 'Diament',
                 multiplier: 20,
-                weight: 8,          // Rzadki symbol premium
+                weight: 8,
                 badgeClass: 'border-cyan-400/45 bg-cyan-950/30 text-cyan-200',
                 rarityLabel: 'Wysoki (rzadki)'
             },
@@ -560,7 +559,7 @@
                 char: '🔔',
                 name: 'Złoty dzwon',
                 multiplier: 10,
-                weight: 16,         // Średnio-częsty
+                weight: 16,
                 badgeClass: 'border-amber-400/45 bg-amber-950/30 text-amber-200',
                 rarityLabel: 'Średni'
             },
@@ -569,7 +568,7 @@
                 char: '🍇',
                 name: 'Winogrona',
                 multiplier: 6,
-                weight: 22,         // Częsty owoc
+                weight: 22,
                 badgeClass: 'border-purple-400/40 bg-purple-950/30 text-purple-200',
                 rarityLabel: 'Częsty'
             },
@@ -578,7 +577,7 @@
                 char: '🍋',
                 name: 'Cytryna',
                 multiplier: 4,
-                weight: 25,         // Bardzo częsty owoc
+                weight: 25,
                 badgeClass: 'border-yellow-400/40 bg-yellow-950/25 text-yellow-200',
                 rarityLabel: 'Bardzo częsty'
             },
@@ -587,26 +586,50 @@
                 char: '🍒',
                 name: 'Wiśnia',
                 multiplier: 3,
-                weight: 25,         // Najczęstszy symbol
+                weight: 25,
                 badgeClass: 'border-emerald-400/40 bg-emerald-950/25 text-emerald-200',
                 rarityLabel: 'Najczęstszy'
             }
         ];
 
         const BET_OPTIONS = [10, 25, 50, 100];
-        const INITIAL_BALANCE = 1000;
-        const TOP_UP_AMOUNT = 1000;
+        const TOP_UP_REWARD = 25;
+
+        // Wspólne klucze w localStorage z gry.html
+        const BALANCE_KEY = 'edimod_balance';
+        const REQ_CLICKS_KEY = 'edimod_req_clicks';
+
+        function loadWalletBalance() {
+            const raw = localStorage.getItem(BALANCE_KEY);
+            const parsed = raw !== null ? parseInt(raw, 10) : 0;
+            return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+        }
+
+        function saveWalletBalance(amount) {
+            localStorage.setItem(BALANCE_KEY, String(Math.max(0, amount)));
+        }
+
+        function loadRequiredClicks() {
+            const raw = localStorage.getItem(REQ_CLICKS_KEY);
+            const parsed = raw !== null ? parseInt(raw, 10) : 5;
+            return Number.isNaN(parsed) || parsed < 5 ? 5 : parsed;
+        }
+
+        function saveRequiredClicks(req) {
+            localStorage.setItem(REQ_CLICKS_KEY, String(req));
+        }
 
         /* =====================================================================
            2. STAN APLIKACJI
            ===================================================================== */
         const state = {
-            balance: INITIAL_BALANCE,
+            balance: loadWalletBalance(),
             bet: 25,
             lastWin: 0,
             isSpinning: false,
             muted: false,
-            // Każdy bęben przechowuje 3 widoczne symbole: [góra, środek (linia wypłaty), dół]
+            requiredClicks: loadRequiredClicks(),
+            currentClicks: 0,
             reelsVisible: [
                 ['🍒', '7️⃣', '🍋'],
                 ['🍋', '7️⃣', '🔔'],
@@ -615,7 +638,6 @@
             history: []
         };
 
-        // Przechowywanie aktywnych pętli animacji dla poszczególnych bębnów
         const reelAnimFrames = [null, null, null];
         const reelTimeouts = [];
 
@@ -643,297 +665,185 @@
                 }
             },
 
-            // Kliknięcie przycisku
             playClick() {
                 const ctx = this.ensureContext();
                 if (!ctx) return;
-
                 try {
                     const now = ctx.currentTime;
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
-
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(520, now);
                     osc.frequency.exponentialRampToValueAtTime(210, now + 0.055);
-
                     gain.gain.setValueAtTime(0.14, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-
                     osc.connect(gain);
                     gain.connect(ctx.destination);
-
                     osc.start(now);
                     osc.stop(now + 0.065);
                 } catch (e) {}
             },
 
-            // Krótkie tyknięcie podczas przewijania bębna
             playTick(pitchFactor = 1) {
                 const ctx = this.ensureContext();
                 if (!ctx) return;
-
                 try {
                     const now = ctx.currentTime;
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
-
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(760 * pitchFactor, now);
                     osc.frequency.exponentialRampToValueAtTime(340 * pitchFactor, now + 0.024);
-
                     gain.gain.setValueAtTime(0.045, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.026);
-
                     osc.connect(gain);
                     gain.connect(ctx.destination);
-
                     osc.start(now);
                     osc.stop(now + 0.03);
                 } catch (e) {}
             },
 
-            // Dźwięk mechanicznego zatrzymania bębna
             playReelStop(reelIndex) {
                 const ctx = this.ensureContext();
                 if (!ctx) return;
-
                 try {
                     const now = ctx.currentTime;
                     const baseFreq = 165 + reelIndex * 35;
-
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
-
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(baseFreq, now);
                     osc.frequency.exponentialRampToValueAtTime(68, now + 0.13);
-
                     gain.gain.setValueAtTime(0.22, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-
                     osc.connect(gain);
                     gain.connect(ctx.destination);
-
                     osc.start(now);
                     osc.stop(now + 0.15);
                 } catch (e) {}
             },
 
-            // Fanfary przy standardowej wygranej
-            playWinFanfare() {
+            playWin(isJackpot = false) {
                 const ctx = this.ensureContext();
                 if (!ctx) return;
-
                 try {
-                    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
-                    notes.forEach((freq, idx) => {
-                        const start = ctx.currentTime + idx * 0.095;
-                        const duration = idx === notes.length - 1 ? 0.42 : 0.16;
+                    const notes = isJackpot
+                        ? [523.25, 659.25, 783.99, 1046.5, 1318.5]
+                        : [523.25, 659.25, 783.99, 1046.5];
+                    const step = isJackpot ? 0.11 : 0.1;
 
+                    notes.forEach((freq, idx) => {
+                        const now = ctx.currentTime + idx * step;
                         const osc = ctx.createOscillator();
                         const gain = ctx.createGain();
-
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(freq, start);
-
-                        gain.gain.setValueAtTime(0.001, start);
-                        gain.gain.linearRampToValueAtTime(0.16, start + 0.02);
-                        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-
+                        osc.type = isJackpot ? 'sawtooth' : 'triangle';
+                        osc.frequency.setValueAtTime(freq, now);
+                        gain.gain.setValueAtTime(0.12, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + step * 1.4);
                         osc.connect(gain);
                         gain.connect(ctx.destination);
-
-                        osc.start(start);
-                        osc.stop(start + duration + 0.02);
-                    });
-                } catch (e) {}
-            },
-
-            // Rozbudowane fanfary przy JACKPOCIE (777)
-            playJackpotFanfare() {
-                const ctx = this.ensureContext();
-                if (!ctx) return;
-
-                try {
-                    const melody = [
-                        { f: 523.25, t: 0.00, d: 0.14 },
-                        { f: 659.25, t: 0.11, d: 0.14 },
-                        { f: 783.99, t: 0.22, d: 0.14 },
-                        { f: 1046.50, t: 0.34, d: 0.22 },
-                        { f: 783.99, t: 0.54, d: 0.14 },
-                        { f: 1046.50, t: 0.68, d: 0.22 },
-                        { f: 1318.51, t: 0.88, d: 0.55 }
-                    ];
-
-                    melody.forEach((note) => {
-                        const start = ctx.currentTime + note.t;
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(note.f, start);
-
-                        // Łagodny filtr dolnoprzepustowy dla przyjemniejszego brzmienia
-                        const filter = ctx.createBiquadFilter();
-                        filter.type = 'lowpass';
-                        filter.frequency.setValueAtTime(2800, start);
-
-                        gain.gain.setValueAtTime(0.001, start);
-                        gain.gain.linearRampToValueAtTime(0.14, start + 0.025);
-                        gain.gain.exponentialRampToValueAtTime(0.001, start + note.d);
-
-                        osc.connect(filter);
-                        filter.connect(gain);
-                        gain.connect(ctx.destination);
-
-                        osc.start(start);
-                        osc.stop(start + note.d + 0.03);
+                        osc.start(now);
+                        osc.stop(now + step * 1.5);
                     });
                 } catch (e) {}
             }
         };
 
-        function toggleSound() {
-            state.muted = !state.muted;
-            const icon = document.getElementById('soundIcon');
-            const label = document.getElementById('soundLabel');
-            const btn = document.getElementById('soundToggleBtn');
-
-            if (state.muted) {
-                icon.textContent = '🔇';
-                label.textContent = 'Dźwięk: WYC.';
-                btn.setAttribute('aria-pressed', 'true');
-            } else {
-                icon.textContent = '🔊';
-                label.textContent = 'Dźwięk: WŁ.';
-                btn.setAttribute('aria-pressed', 'false');
-                SoundEngine.playClick();
-            }
-        }
-
         /* =====================================================================
-           4. WAŻONE LOSOWANIE I OBLICZANIE WYPŁAT
+           4. POMOCNIKI UI I LOSOWANIE WAŻONE
            ===================================================================== */
-        function drawWeightedSymbol() {
-            const totalWeight = SYMBOLS.reduce((acc, item) => acc + item.weight, 0);
-            let roll = Math.random() * totalWeight;
-
-            for (const sym of SYMBOLS) {
-                if (roll < sym.weight) {
-                    return sym.char;
-                }
-                roll -= sym.weight;
-            }
-            return SYMBOLS[SYMBOLS.length - 1].char;
+        function getCellHeight() {
+            return window.innerWidth >= 640 ? 108 : 92;
         }
 
-        function getSymbolConfig(char) {
+        function getSymbolByChar(char) {
             return SYMBOLS.find(s => s.char === char) || SYMBOLS[SYMBOLS.length - 1];
         }
 
-        function evaluateMiddlePayline(middleSymbols, betAmount) {
-            const [s0, s1, s2] = middleSymbols;
-            if (s0 === s1 && s1 === s2) {
-                const cfg = getSymbolConfig(s0);
-                const payout = betAmount * cfg.multiplier;
-                const isJackpot = cfg.id === 'seven';
-                return {
-                    won: true,
-                    isJackpot,
-                    symbolChar: s0,
-                    symbolName: cfg.name,
-                    multiplier: cfg.multiplier,
-                    payout
-                };
+        function pickWeightedSymbol() {
+            const totalWeight = SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
+            let roll = Math.random() * totalWeight;
+            for (const sym of SYMBOLS) {
+                roll -= sym.weight;
+                if (roll <= 0) return sym;
             }
-            return {
-                won: false,
-                isJackpot: false,
-                symbolChar: null,
-                symbolName: null,
-                multiplier: 0,
-                payout: 0
-            };
+            return SYMBOLS[SYMBOLS.length - 1];
         }
 
-        /* =====================================================================
-           5. RENDEROWANIE UI, BĘBNÓW, TABELI WYPŁAT I HISTORII
-           ===================================================================== */
-        function initMarqueeBulbs() {
-            const topContainer = document.getElementById('topBulbs');
-            const bottomContainer = document.getElementById('bottomBulbs');
-            const count = 16;
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('statusToast');
+            const text = document.getElementById('statusToastText');
+            text.textContent = msg;
+            toast.className = 'rounded-xl px-4 py-2.5 text-xs sm:text-sm font-medium border flex items-center justify-between gap-3 transition-all ' + (
+                type === 'warn'
+                    ? 'bg-amber-950/80 border-amber-500/40 text-amber-200'
+                    : 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200'
+            );
+            toast.classList.remove('hidden');
+        }
 
-            topContainer.innerHTML = '';
-            bottomContainer.innerHTML = '';
+        function hideToast() {
+            document.getElementById('statusToast').classList.add('hidden');
+        }
 
-            for (let i = 0; i < count; i++) {
-                const topBulb = document.createElement('span');
-                topBulb.className = 'marquee-bulb ' + (i % 2 === 0 ? 'active-gold' : 'active-red');
-                topContainer.appendChild(topBulb);
+        function toggleSound() {
+            state.muted = !state.muted;
+            document.getElementById('soundIcon').textContent = state.muted ? '🔇' : '🔊';
+            document.getElementById('soundLabel').textContent = state.muted ? 'Dźwięk: WYŁ.' : 'Dźwięk: WŁ.';
+            document.getElementById('soundToggleBtn').setAttribute('aria-pressed', String(state.muted));
+            if (!state.muted) SoundEngine.playClick();
+        }
 
-                const botBulb = document.createElement('span');
-                botBulb.className = 'marquee-bulb ' + (i % 2 === 1 ? 'active-gold' : 'active-red');
-                bottomContainer.appendChild(botBulb);
+        function buildMarqueeBulbs() {
+            const top = document.getElementById('topBulbs');
+            const bottom = document.getElementById('bottomBulbs');
+            top.innerHTML = '';
+            bottom.innerHTML = '';
+            for (let i = 0; i < 16; i++) {
+                const b1 = document.createElement('span');
+                b1.className = 'marquee-bulb ' + (i % 2 === 0 ? 'active-gold' : 'active-red');
+                top.appendChild(b1);
+
+                const b2 = document.createElement('span');
+                b2.className = 'marquee-bulb ' + (i % 2 === 1 ? 'active-gold' : 'active-red');
+                bottom.appendChild(b2);
             }
         }
 
         function setMarqueeMode(mode) {
             const bulbs = document.querySelectorAll('.marquee-bulb');
-            bulbs.forEach((bulb, idx) => {
-                bulb.classList.remove('active-gold', 'active-red', 'jackpot-flash');
-                if (mode === 'jackpot') {
-                    bulb.classList.add('jackpot-flash');
-                } else if (mode === 'win') {
-                    bulb.classList.add(idx % 2 === 0 ? 'active-gold' : 'jackpot-flash');
-                } else if (mode === 'spinning') {
-                    bulb.classList.add((idx + Math.floor(Date.now() / 120)) % 2 === 0 ? 'active-gold' : 'active-red');
+            bulbs.forEach((b, i) => {
+                b.classList.remove('active-gold', 'active-red', 'jackpot-flash');
+                if (mode === 'win') {
+                    b.classList.add('jackpot-flash');
                 } else {
-                    bulb.classList.add(idx % 2 === 0 ? 'active-gold' : 'active-red');
+                    b.classList.add(i % 2 === 0 ? 'active-gold' : 'active-red');
                 }
             });
         }
 
         function renderPaytable() {
             const grid = document.getElementById('paytableGrid');
-            grid.innerHTML = '';
-
-            SYMBOLS.forEach((sym) => {
-                const exampleWin = state.bet * sym.multiplier;
-                const card = document.createElement('div');
-                card.className = `rounded-2xl border p-3 flex items-center justify-between gap-2 transition ${sym.badgeClass}`;
-                card.innerHTML = `
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="text-2xl sm:text-3xl leading-none shrink-0">${sym.char}</div>
+            grid.innerHTML = SYMBOLS.map(sym => `
+                <div class="rounded-2xl border ${sym.badgeClass} p-2.5 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-2xl leading-none">${sym.char}</span>
                         <div class="min-w-0">
-                            <div class="text-xs sm:text-sm font-bold truncate">${sym.name}</div>
-                            <div class="text-[11px] opacity-75 truncate">${sym.rarityLabel}</div>
+                            <div class="text-xs font-bold truncate">${sym.name}</div>
+                            <div class="text-[10px] opacity-75 truncate">${sym.rarityLabel}</div>
                         </div>
                     </div>
-                    <div class="text-right shrink-0">
-                        <div class="font-mono-num text-xs sm:text-sm font-extrabold text-amber-300">×${sym.multiplier}</div>
-                        <div class="font-mono-num text-[11px] opacity-85">+${exampleWin} zł</div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
+                    <span class="font-mono-num text-xs sm:text-sm font-extrabold px-2 py-0.5 rounded-lg bg-black/30 shrink-0">
+                        ×${sym.multiplier}
+                    </span>
+                </div>
+            `).join('');
         }
 
-        function renderReelStrip(reelIndex, symbolsArray) {
+        function renderReelStrip(reelIndex, chars) {
             const strip = document.getElementById(`reelStrip${reelIndex}`);
-            if (!strip) return;
-            strip.innerHTML = '';
-            symbolsArray.forEach((char, rowIdx) => {
-                const cell = document.createElement('div');
-                cell.className = 'reel-cell';
-                if (rowIdx === 1) {
-                    cell.dataset.middle = 'true';
-                }
-                cell.textContent = char;
-                strip.appendChild(cell);
-            });
             strip.style.transform = 'translateY(0px)';
+            strip.innerHTML = chars.map(ch => `<div class="reel-cell">${ch}</div>`).join('');
         }
 
         function renderAllReels() {
@@ -942,53 +852,166 @@
             }
         }
 
-        function updateHUD() {
+        function updateUI() {
+            saveWalletBalance(state.balance);
             document.getElementById('balanceDisplay').textContent = state.balance;
             document.getElementById('betDisplay').textContent = state.bet;
             document.getElementById('winCounterDisplay').textContent = state.lastWin;
 
-            // Podświetlenie wybranego przycisku stawki
-            document.querySelectorAll('.bet-preset').forEach((btn) => {
-                const val = Number(btn.dataset.bet);
-                const isSelected = val === state.bet;
-                const canAfford = val <= state.balance;
-
-                btn.disabled = state.isSpinning || !canAfford;
-                btn.className =
-                    'bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition ' +
-                    (isSelected
-                        ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-md shadow-amber-500/25'
-                        : 'bg-slate-800/90 text-slate-200 border-slate-700 hover:border-amber-400/50') +
-                    (!canAfford && !state.isSpinning ? ' opacity-40 cursor-not-allowed' : ' cursor-pointer');
+            document.querySelectorAll('.bet-preset').forEach(btn => {
+                const val = parseInt(btn.dataset.bet, 10);
+                const active = val === state.bet;
+                btn.className = 'bet-preset py-2.5 px-2 rounded-xl font-mono-num text-xs sm:text-sm font-bold border transition cursor-pointer ' + (
+                    active
+                        ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-md'
+                        : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-700/80'
+                );
+                btn.disabled = state.isSpinning;
             });
 
-            // Przyciski - i + dla stawki
-            const currentIdx = BET_OPTIONS.indexOf(state.bet);
-            const betDownBtn = document.getElementById('betDownBtn');
-            const betUpBtn = document.getElementById('betUpBtn');
+            document.getElementById('betDownBtn').disabled = state.isSpinning || BET_OPTIONS.indexOf(state.bet) <= 0;
+            document.getElementById('betUpBtn').disabled = state.isSpinning || BET_OPTIONS.indexOf(state.bet) >= BET_OPTIONS.length - 1;
+            document.getElementById('spinBtn').disabled = state.isSpinning || state.balance < state.bet;
+        }
 
-            betDownBtn.disabled = state.isSpinning || currentIdx <= 0;
-            betUpBtn.disabled =
-                state.isSpinning ||
-                currentIdx >= BET_OPTIONS.length - 1 ||
-                BET_OPTIONS[currentIdx + 1] > state.balance;
+        function selectBet(newBet) {
+            if (state.isSpinning) return;
+            if (!BET_OPTIONS.includes(newBet)) return;
+            state.bet = newBet;
+            SoundEngine.playClick();
+            updateUI();
+        }
 
-            // Przycisk ZAKRĘĆ
-            const spinBtn = document.getElementById('spinBtn');
-            spinBtn.disabled = state.isSpinning || state.balance < state.bet;
-
-            // Wyróżnienie przycisku doładowania, gdy saldo jest za niskie na stawkę
-            const topUpBtn = document.getElementById('topUpBtn');
-            if (!state.isSpinning && state.balance < state.bet) {
-                topUpBtn.className =
-                    'py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-200 text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 animate-bounce cursor-pointer';
-            } else {
-                topUpBtn.className =
-                    'py-3.5 px-4 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-400/45 text-emerald-300 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer';
+        function stepBet(dir) {
+            if (state.isSpinning) return;
+            const idx = BET_OPTIONS.indexOf(state.bet);
+            const nextIdx = idx + dir;
+            if (nextIdx >= 0 && nextIdx < BET_OPTIONS.length) {
+                state.bet = BET_OPTIONS[nextIdx];
+                SoundEngine.playClick();
+                updateUI();
             }
-            topUpBtn.disabled = state.isSpinning;
+        }
 
-            renderPaytable();
+        /* =====================================================================
+           5. DOŁADOWANIE PRAWYM PRZYCISKIEM (ROSĄCE: 5, 10, 15, 20...)
+           ===================================================================== */
+        function openTopUpModal() {
+            if (state.isSpinning) return;
+            state.requiredClicks = loadRequiredClicks();
+            state.currentClicks = 0;
+            document.getElementById('currentClicks').textContent = state.currentClicks;
+            document.getElementById('requiredClicks').textContent = state.requiredClicks;
+            const modal = document.getElementById('topupModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeTopUpModal() {
+            const modal = document.getElementById('topupModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            updateUI();
+        }
+
+        document.getElementById('rightClickZone').addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            state.currentClicks++;
+            SoundEngine.playTick(1.15);
+
+            if (state.currentClicks >= state.requiredClicks) {
+                state.balance = loadWalletBalance() + TOP_UP_REWARD;
+                saveWalletBalance(state.balance);
+                state.requiredClicks += 5;
+                saveRequiredClicks(state.requiredClicks);
+                state.currentClicks = 0;
+
+                SoundEngine.playWin(false);
+                showToast(`Doładowano +${TOP_UP_REWARD} monet! Kolejne doładowanie wymaga ${state.requiredClicks} kliknięć prawym.`, 'info');
+                updateUI();
+                closeTopUpModal();
+                return;
+            }
+
+            document.getElementById('currentClicks').textContent = state.currentClicks;
+            document.getElementById('requiredClicks').textContent = state.requiredClicks;
+        });
+
+        /* =====================================================================
+           6. ANIMACJA BĘBNÓW, WYNIK I HISTORIA
+           ===================================================================== */
+        function clearWinHighlights() {
+            document.getElementById('reelsStage').classList.remove('payline-active');
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`reelCol${i}`).classList.remove('winner-reel');
+            }
+            setMarqueeMode('idle');
+        }
+
+        function spinSingleReel(reelIndex, finalThree, durationMs) {
+            return new Promise(resolve => {
+                const col = document.getElementById(`reelCol${reelIndex}`);
+                const strip = document.getElementById(`reelStrip${reelIndex}`);
+                const cellH = getCellHeight();
+
+                col.classList.add('reel-spinning');
+                col.classList.remove('reel-landed');
+
+                const fillerCount = 16;
+                const sequence = [];
+                for (let i = 0; i < fillerCount; i++) {
+                    sequence.push(pickWeightedSymbol().char);
+                }
+                sequence.push(finalThree[0], finalThree[1], finalThree[2]);
+
+                strip.innerHTML = sequence.map(ch => `<div class="reel-cell">${ch}</div>`).join('');
+
+                const targetIndex = sequence.length - 3;
+                const maxOffset = targetIndex * cellH;
+                const startTime = performance.now();
+                let lastTickStep = -1;
+
+                function step(now) {
+                    const elapsed = now - startTime;
+                    const t = Math.min(1, elapsed / durationMs);
+                    const eased = 1 - Math.pow(1 - t, 3);
+                    const currentY = eased * maxOffset;
+
+                    strip.style.transform = `translateY(-${currentY}px)`;
+
+                    const tickStep = Math.floor(currentY / cellH);
+                    if (tickStep !== lastTickStep && t < 0.92) {
+                        lastTickStep = tickStep;
+                        SoundEngine.playTick(0.9 + reelIndex * 0.12);
+                    }
+
+                    if (t < 1) {
+                        reelAnimFrames[reelIndex] = requestAnimationFrame(step);
+                    } else {
+                        col.classList.remove('reel-spinning');
+                        state.reelsVisible[reelIndex] = [...finalThree];
+                        renderReelStrip(reelIndex, finalThree);
+                        col.classList.add('reel-landed');
+                        SoundEngine.playReelStop(reelIndex);
+                        resolve();
+                    }
+                }
+
+                reelAnimFrames[reelIndex] = requestAnimationFrame(step);
+            });
+        }
+
+        function addHistoryEntry(betAmount, winAmount, midChars) {
+            const now = new Date();
+            const timeStr = now.toTimeString().slice(0, 5);
+            state.history.unshift({
+                time: timeStr,
+                bet: betAmount,
+                win: winAmount,
+                symbols: midChars.join(' ')
+            });
+            if (state.history.length > 10) state.history.pop();
+            renderHistory();
         }
 
         function renderHistory() {
@@ -997,431 +1020,129 @@
                 list.innerHTML = `
                     <div class="text-center py-8 text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
                         Brak rozegranych spinów. Zakręć bębnami, aby rozpocząć!
-                    </div>
-                `;
+                    </div>`;
                 return;
             }
 
-            list.innerHTML = state.history.map((item) => {
-                const statusBadge = item.isJackpot
-                    ? '<span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-400 text-slate-950">JACKPOT</span>'
-                    : item.won
-                        ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">+${item.payout} zł</span>`
-                        : `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400">-${item.bet} zł</span>`;
-
+            list.innerHTML = state.history.map(item => {
+                const isWin = item.win > 0;
                 return `
-                    <div class="flex items-center justify-between gap-2 bg-slate-950/80 border ${item.won ? 'border-amber-400/35' : 'border-slate-800/90'} rounded-xl px-3 py-2 text-xs">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <span class="font-mono-num text-[11px] text-slate-500">#${item.spinNumber}</span>
-                            <span class="text-lg sm:text-xl tracking-wider leading-none">${item.combo.join(' ')}</span>
+                    <div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs ${
+                        isWin
+                            ? 'bg-emerald-950/35 border-emerald-500/35 text-emerald-200'
+                            : 'bg-slate-950/70 border-slate-800 text-slate-300'
+                    }">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono-num text-[11px] text-slate-500">${item.time}</span>
+                            <span class="text-base">${item.symbols}</span>
                         </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <span class="hidden sm:inline text-[11px] text-slate-400">Stawka ${item.bet} zł</span>
-                            ${statusBadge}
+                        <div class="font-mono-num font-bold">
+                            ${isWin ? `<span class="text-emerald-400">+${item.win}</span>` : `<span class="text-slate-500">-${item.bet}</span>`}
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        /* =====================================================================
-           6. ZARZĄDZANIE STAWKĄ, DOŁADOWANIEM I KOMUNIKATAMI
-           ===================================================================== */
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('statusToast');
-            const text = document.getElementById('statusToastText');
-            text.textContent = message;
-
-            toast.className = 'rounded-xl px-4 py-2.5 text-xs sm:text-sm font-medium border flex items-center justify-between gap-3 transition-all ';
-            if (type === 'success') {
-                toast.className += 'bg-emerald-950/80 border-emerald-500/40 text-emerald-200';
-            } else if (type === 'warning') {
-                toast.className += 'bg-amber-950/80 border-amber-500/40 text-amber-200';
-            } else {
-                toast.className += 'bg-slate-900/90 border-slate-700 text-slate-200';
-            }
-            toast.classList.remove('hidden');
-        }
-
-        function hideToast() {
-            document.getElementById('statusToast').classList.add('hidden');
-        }
-
-        function adjustBetToBalance() {
-            if (state.balance < state.bet) {
-                const affordable = BET_OPTIONS.filter(b => b <= state.balance);
-                if (affordable.length > 0) {
-                    state.bet = affordable[affordable.length - 1];
-                } else {
-                    state.bet = BET_OPTIONS[0];
-                }
-            }
-        }
-
-        function selectBet(newBet) {
-            if (state.isSpinning) return;
-            if (newBet > state.balance) {
-                showToast(`Masz za mało środków (${state.balance} zł), aby ustawić stawkę ${newBet} zł.`, 'warning');
-                return;
-            }
-            SoundEngine.playClick();
-            state.bet = newBet;
-            updateHUD();
-        }
-
-        function stepBet(delta) {
-            if (state.isSpinning) return;
-            const idx = BET_OPTIONS.indexOf(state.bet);
-            const nextIdx = idx + delta;
-            if (nextIdx >= 0 && nextIdx < BET_OPTIONS.length) {
-                const nextBet = BET_OPTIONS[nextIdx];
-                if (nextBet > state.balance) {
-                    showToast(`Brak wystarczających środków na stawkę ${nextBet} zł.`, 'warning');
-                    return;
-                }
-                SoundEngine.playClick();
-                state.bet = nextBet;
-                updateHUD();
-            }
-        }
-
-        function topUpBalance() {
-            if (state.isSpinning) return;
-            SoundEngine.playClick();
-            state.balance += TOP_UP_AMOUNT;
-            adjustBetToBalance();
-            updateHUD();
-            showToast(`Doładowano konto kwotą +${TOP_UP_AMOUNT} zł wirtualnych środków!`, 'success');
-            setBannerMessage('Konto doładowane!', `Aktualne saldo wynosi ${state.balance} zł. Możesz kontynuować grę.`, 'normal');
-        }
-
         function clearHistory() {
-            if (state.isSpinning) return;
-            SoundEngine.playClick();
             state.history = [];
             renderHistory();
         }
 
-        function setBannerMessage(mainText, subText, mode = 'normal') {
-            const banner = document.getElementById('messageBanner');
-            const mainEl = document.getElementById('resultMessage');
-            const subEl = document.getElementById('resultSubMessage');
-
-            mainEl.textContent = mainText;
-            subEl.textContent = subText;
-
-            banner.classList.remove('win-banner-pop');
-            void banner.offsetWidth; // Reflow dla ponowienia animacji
-
-            if (mode === 'jackpot') {
-                banner.className = 'bg-gradient-to-r from-rose-950/95 via-amber-900/90 to-rose-950/95 border-2 border-yellow-300 rounded-2xl px-4 py-3 text-center min-h-[58px] flex flex-col items-center justify-center shadow-lg shadow-amber-500/25 win-banner-pop';
-                mainEl.className = 'text-base sm:text-xl font-black text-yellow-200 tracking-wide';
-                subEl.className = 'text-xs text-amber-100 mt-0.5 font-semibold';
-            } else if (mode === 'win') {
-                banner.className = 'bg-gradient-to-r from-emerald-950/90 via-slate-900/95 to-emerald-950/90 border-2 border-emerald-400/70 rounded-2xl px-4 py-3 text-center min-h-[58px] flex flex-col items-center justify-center shadow-lg shadow-emerald-500/20 win-banner-pop';
-                mainEl.className = 'text-sm sm:text-lg font-extrabold text-emerald-300';
-                subEl.className = 'text-xs text-emerald-100/85 mt-0.5';
-            } else if (mode === 'spinning') {
-                banner.className = 'bg-slate-950/95 border border-amber-400/40 rounded-2xl px-4 py-3 text-center min-h-[58px] flex flex-col items-center justify-center';
-                mainEl.className = 'text-sm sm:text-base font-bold text-amber-300';
-                subEl.className = 'text-xs text-slate-400 mt-0.5';
-            } else {
-                banner.className = 'bg-slate-950/95 border border-amber-400/30 rounded-2xl px-4 py-3 text-center min-h-[58px] flex flex-col items-center justify-center';
-                mainEl.className = 'text-sm sm:text-base font-bold text-amber-300';
-                subEl.className = 'text-xs text-slate-400 mt-0.5';
-            }
-        }
-
-        function animateWinCounter(targetAmount, durationMs = 700) {
-            const winEl = document.getElementById('winCounterDisplay');
-            const startAmount = 0;
-            const startTime = performance.now();
-
-            function step(now) {
-                const progress = Math.min((now - startTime) / durationMs, 1);
-                // Łagodne wyhamowanie (easeOutCubic)
-                const eased = 1 - Math.pow(1 - progress, 3);
-                const current = Math.round(startAmount + (targetAmount - startAmount) * eased);
-                winEl.textContent = current;
-
-                if (progress < 1) {
-                    requestAnimationFrame(step);
-                } else {
-                    winEl.textContent = targetAmount;
-                }
-            }
-            requestAnimationFrame(step);
-        }
-
-        /* =====================================================================
-           7. PŁYNNA ANIMACJA BĘBNÓW I SEKWENCYJNE ZATRZYMYWANIE
-           ===================================================================== */
-        function getCellHeight() {
-            return window.innerWidth >= 640 ? 108 : 92;
-        }
-
-        function clearWinHighlights() {
-            document.getElementById('reelsStage').classList.remove('payline-active');
-            for (let i = 0; i < 3; i++) {
-                document.getElementById(`reelCol${i}`).classList.remove('winner-reel', 'reel-landed');
-            }
-            document.getElementById('lastWinCard').classList.remove('border-emerald-400', 'bg-emerald-950/30');
-        }
-
-        function startSpin() {
+        async function startSpin() {
+            state.balance = loadWalletBalance();
             if (state.isSpinning) return;
-
             if (state.balance < state.bet) {
-                showToast('Za mało środków na wybraną stawkę. Kliknij „Doładuj +1000 zł”!', 'warning');
-                updateHUD();
+                showToast('Za mało monet! Kliknij „Doładuj” i kliknij prawym przyciskiem myszy.', 'warn');
+                updateUI();
                 return;
             }
 
             clearWinHighlights();
             state.isSpinning = true;
-            state.lastWin = 0;
-            document.getElementById('winCounterDisplay').textContent = '0';
-
-            // Pobranie stawki z salda
             state.balance -= state.bet;
-            updateHUD();
+            saveWalletBalance(state.balance);
+            state.lastWin = 0;
 
-            SoundEngine.playClick();
-            setBannerMessage('Bębny w ruchu...', `Gramy o stawkę ${state.bet} zł. Powodzenia!`, 'spinning');
-            document.getElementById('reelStatusBadge').textContent = 'Losowanie...';
+            document.getElementById('reelStatusBadge').textContent = 'Bębny w ruchu...';
+            document.getElementById('resultMessage').textContent = 'Trwa losowanie...';
+            document.getElementById('resultSubMessage').textContent = 'Powodzenia na środkowym rzędzie!';
+            updateUI();
 
-            // Losujemy docelowe trójki symboli [góra, środek, dół] dla każdego bębna
-            const finalReels = [0, 1, 2].map(() => [
-                drawWeightedSymbol(),
-                drawWeightedSymbol(),
-                drawWeightedSymbol()
+            const outcomes = [0, 1, 2].map(() => [
+                pickWeightedSymbol().char,
+                pickWeightedSymbol().char,
+                pickWeightedSymbol().char
             ]);
 
-            const stoppedFlags = [false, false, false];
-            // Sekwencyjne czasy zatrzymania: lewy (900ms), środkowy (1350ms), prawy (1800ms)
-            const stopDelays = [900, 1350, 1800];
+            await Promise.all([
+                spinSingleReel(0, outcomes[0], 1050),
+                spinSingleReel(1, outcomes[1], 1450),
+                spinSingleReel(2, outcomes[2], 1850)
+            ]);
 
-            for (let reelIdx = 0; reelIdx < 3; reelIdx++) {
-                beginSmoothReelScroll(reelIdx, stoppedFlags);
+            const mid = [outcomes[0][1], outcomes[1][1], outcomes[2][1]];
+            let winAmount = 0;
 
-                const timeoutId = setTimeout(() => {
-                    stopReelAtTarget(reelIdx, finalReels[reelIdx], stoppedFlags, () => {
-                        // Gdy wszystkie 3 bębny się zatrzymają
-                        if (stoppedFlags.every(Boolean)) {
-                            finishSpin(finalReels);
-                        }
-                    });
-                }, stopDelays[reelIdx]);
+            if (mid[0] === mid[1] && mid[1] === mid[2]) {
+                const sym = getSymbolByChar(mid[0]);
+                winAmount = state.bet * sym.multiplier;
+                state.balance += winAmount;
+                saveWalletBalance(state.balance);
+                state.lastWin = winAmount;
 
-                reelTimeouts.push(timeoutId);
-            }
-        }
-
-        function beginSmoothReelScroll(reelIndex, stoppedFlags) {
-            const col = document.getElementById(`reelCol${reelIndex}`);
-            const strip = document.getElementById(`reelStrip${reelIndex}`);
-            col.classList.add('reel-spinning');
-
-            // Tworzymy dłuższy pasek symboli do płynnego przesuwu pionowego
-            const bufferCount = 8;
-            let currentColumn = [
-                state.reelsVisible[reelIndex][0],
-                state.reelsVisible[reelIndex][1],
-                state.reelsVisible[reelIndex][2]
-            ];
-
-            for (let i = 0; i < bufferCount; i++) {
-                currentColumn.push(drawWeightedSymbol());
-            }
-
-            strip.innerHTML = '';
-            currentColumn.forEach((char) => {
-                const cell = document.createElement('div');
-                cell.className = 'reel-cell';
-                cell.textContent = char;
-                strip.appendChild(cell);
-            });
-
-            let offsetPx = 0;
-            let lastTime = performance.now();
-            let lastTickStep = 0;
-            const speedPxPerSec = 1350 + reelIndex * 110;
-
-            function frame(now) {
-                if (stoppedFlags[reelIndex]) return;
-
-                const dt = Math.min((now - lastTime) / 1000, 0.05);
-                lastTime = now;
-
-                const cellH = getCellHeight();
-                const cycleHeight = cellH * (currentColumn.length - 3);
-
-                offsetPx += speedPxPerSec * dt;
-
-                // Dźwięk tyknięcia co jeden symbol
-                const stepIndex = Math.floor(offsetPx / cellH);
-                if (stepIndex > lastTickStep) {
-                    lastTickStep = stepIndex;
-                    SoundEngine.playTick(0.92 + reelIndex * 0.08);
-                    setMarqueeMode('spinning');
-                }
-
-                if (offsetPx >= cycleHeight) {
-                    offsetPx = offsetPx % cycleHeight;
-                    lastTickStep = Math.floor(offsetPx / cellH);
-                    // Odśwież losowe symbole w buforze
-                    for (let i = 3; i < currentColumn.length; i++) {
-                        const sym = drawWeightedSymbol();
-                        currentColumn[i] = sym;
-                        if (strip.children[i]) {
-                            strip.children[i].textContent = sym;
-                        }
-                    }
-                }
-
-                strip.style.transform = `translateY(${-offsetPx}px)`;
-                reelAnimFrames[reelIndex] = requestAnimationFrame(frame);
-            }
-
-            reelAnimFrames[reelIndex] = requestAnimationFrame(frame);
-        }
-
-        function stopReelAtTarget(reelIndex, targetThreeSymbols, stoppedFlags, onAllStopped) {
-            stoppedFlags[reelIndex] = true;
-            if (reelAnimFrames[reelIndex]) {
-                cancelAnimationFrame(reelAnimFrames[reelIndex]);
-                reelAnimFrames[reelIndex] = null;
-            }
-
-            const col = document.getElementById(`reelCol${reelIndex}`);
-            col.classList.remove('reel-spinning');
-
-            state.reelsVisible[reelIndex] = [...targetThreeSymbols];
-            renderReelStrip(reelIndex, targetThreeSymbols);
-
-            col.classList.remove('reel-landed');
-            void col.offsetWidth;
-            col.classList.add('reel-landed');
-
-            SoundEngine.playReelStop(reelIndex);
-            document.getElementById('reelStatusBadge').textContent = `Zatrzymano bęben ${reelIndex + 1}/3`;
-
-            if (typeof onAllStopped === 'function') {
-                onAllStopped();
-            }
-        }
-
-        function finishSpin(finalReels) {
-            const middleRow = [
-                finalReels[0][1],
-                finalReels[1][1],
-                finalReels[2][1]
-            ];
-
-            const evaluation = evaluateMiddlePayline(middleRow, state.bet);
-
-            if (evaluation.won) {
-                state.balance += evaluation.payout;
-                state.lastWin = evaluation.payout;
-
-                // Podświetlenie linii wygranej i bębnów
+                const isJackpot = sym.id === 'seven';
                 document.getElementById('reelsStage').classList.add('payline-active');
                 for (let i = 0; i < 3; i++) {
                     document.getElementById(`reelCol${i}`).classList.add('winner-reel');
                 }
-                document.getElementById('lastWinCard').classList.add('border-emerald-400', 'bg-emerald-950/30');
+                setMarqueeMode('win');
+                SoundEngine.playWin(isJackpot);
 
-                animateWinCounter(evaluation.payout, evaluation.isJackpot ? 1100 : 650);
+                const banner = document.getElementById('messageBanner');
+                banner.classList.remove('win-banner-pop');
+                void banner.offsetWidth;
+                banner.classList.add('win-banner-pop');
 
-                if (evaluation.isJackpot) {
-                    setMarqueeMode('jackpot');
-                    SoundEngine.playJackpotFanfare();
-                    setBannerMessage(
-                        `🚨 JACKPOT 777! WYGRANA ${evaluation.payout} zł! 🚨`,
-                        `Trzy siódemki w linii wypłaty (mnożnik ×${evaluation.multiplier} przy stawce ${state.bet} zł)!`,
-                        'jackpot'
-                    );
-                } else {
-                    setMarqueeMode('win');
-                    SoundEngine.playWinFanfare();
-                    setBannerMessage(
-                        `🎉 WYGRANA ${evaluation.payout} zł!`,
-                        `3× ${evaluation.symbolChar} (${evaluation.symbolName}) — mnożnik ×${evaluation.multiplier} za stawkę ${state.bet} zł!`,
-                        'win'
-                    );
-                }
+                document.getElementById('resultMessage').textContent = isJackpot
+                    ? `🔥 JACKPOT 777! Wygrana ${winAmount} monet!`
+                    : `🎉 Wygrana ${winAmount} monet! (3× ${sym.name})`;
+                document.getElementById('resultSubMessage').textContent = `Mnożnik ×${sym.multiplier} dla stawki ${state.bet}.`;
+                document.getElementById('reelStatusBadge').textContent = 'Wygrana!';
             } else {
-                setMarqueeMode('idle');
-                setBannerMessage(
-                    'Brak wygranej na linii środkowej',
-                    `Wylosowano ${middleRow.join(' · ')}. Spróbuj kolejnego spinu!`,
-                    'normal'
-                );
+                document.getElementById('resultMessage').textContent = 'Tym razem bez trafienia.';
+                document.getElementById('resultSubMessage').textContent = 'Spróbuj ponownie lub zmień stawkę.';
+                document.getElementById('reelStatusBadge').textContent = 'Gotowy do gry';
             }
 
-            // Dodaj wpis do historii (maksymalnie 10 pozycji)
-            const spinNumber = state.history.length > 0 ? state.history[0].spinNumber + 1 : 1;
-            state.history.unshift({
-                spinNumber,
-                combo: middleRow,
-                bet: state.bet,
-                won: evaluation.won,
-                isJackpot: evaluation.isJackpot,
-                payout: evaluation.payout
-            });
-            if (state.history.length > 10) {
-                state.history.pop();
-            }
-
+            addHistoryEntry(state.bet, winAmount, mid);
             state.isSpinning = false;
-            document.getElementById('reelStatusBadge').textContent = 'Gotowy do gry';
-
-            if (state.balance < state.bet) {
-                adjustBetToBalance();
-                if (state.balance === 0) {
-                    showToast('Saldo osiągnęło 0 zł! Kliknij „Doładuj +1000 zł”, aby grać dalej.', 'warning');
-                }
-            }
-
-            renderHistory();
-            updateHUD();
+            updateUI();
         }
 
-        /* =====================================================================
-           8. OBSŁUGA KLAWIATURY (SPACJA) I INICJALIZACJA
-           ===================================================================== */
-        document.addEventListener('keydown', (event) => {
-            if (event.code !== 'Space' || event.repeat) return;
-
-            const target = event.target;
-            const tag = target && target.tagName ? target.tagName : '';
-            const isInteractive = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A'].includes(tag)
-                || (target && target.isContentEditable);
-
-            if (isInteractive) return;
-
-            event.preventDefault();
-            if (!state.isSpinning && state.balance >= state.bet) {
-                const spinBtn = document.getElementById('spinBtn');
-                spinBtn.classList.add('pressed');
-                setTimeout(() => spinBtn.classList.remove('pressed'), 140);
-                startSpin();
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !state.isSpinning) {
+                const modalOpen = !document.getElementById('topupModal').classList.contains('hidden');
+                if (!modalOpen) {
+                    e.preventDefault();
+                    startSpin();
+                }
             }
         });
 
-        window.addEventListener('resize', () => {
-            if (!state.isSpinning) {
-                renderAllReels();
+        window.addEventListener('storage', (e) => {
+            if (e.key === BALANCE_KEY || e.key === REQ_CLICKS_KEY) {
+                state.balance = loadWalletBalance();
+                state.requiredClicks = loadRequiredClicks();
+                updateUI();
             }
         });
 
-        // Start aplikacji po załadowaniu DOM
-        window.addEventListener('DOMContentLoaded', () => {
-            initMarqueeBulbs();
-            renderAllReels();
-            renderHistory();
-            updateHUD();
-        });
+        // Inicjalizacja
+        buildMarqueeBulbs();
+        renderPaytable();
+        renderAllReels();
+        updateUI();
     </script>
 </body>
 </html>
