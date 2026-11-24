@@ -1,8 +1,10 @@
 Strona projektu
 https://edimod.sitey.my/
 
-Ta strona powyżej może wyłączyć jeżeli ktoś zapomni ją "odnowić" bo wymaga się co 3 miesiące podwierdzać że jesteś na sitey
-Ale się nie martwcie bo na dole jest adres github "zapasowy" który Nie padnie aż do wyłączenia serverów github :D
+Powyższy adres może przestać działać, jeśli zapomnimy go odnowić. Sitey wymaga potwierdzania odnowienia co 3 miesiące.
+Ale bez obaw!
+Na dole znajdziecie zapasowy adres GitHub Pages, który nie wymaga odnawiania i będzie działać tak długo,
+jak GitHub będzie utrzymywał tę usługę. :D
 
 Strona github pages
 https://edimod.github.io/Edimod/
