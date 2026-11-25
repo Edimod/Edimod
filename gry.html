@@ -367,28 +367,25 @@
             modal.style.display = 'none';
         });
 
-        // Obsługa klikania PRAWYM przyciskiem myszy (zdarzenie 'contextmenu')
-        rightClickZone.addEventListener('contextmenu', (e) => {
-            e.preventDefault(); // Blokuje wyskakiwanie menu przeglądarki pod prawym przyciskiem
+        // Obsługa zwykłego kliknięcia – komputer, telefon i tablet
+rightClickZone.addEventListener('click', () => {
 
-            currentClicks++;
+    currentClicks++;
 
-            // Sprawdzenie, czy osiągnięto wymaganą liczbę kliknięć
-            if (currentClicks >= requiredClicks) {
-                balance += rewardAmount; // Dodaje monety
-                requiredClicks += 5;     // Zwiększa wymagania na następny raz (5 -> 10 -> 15 -> 20...)
-                currentClicks = 0;       // Zeruje postęp obecnego paska
-                
-                // Krótki efekt wizualny po doładowaniu
-                rightClickZone.style.backgroundColor = '#abebc6';
-                setTimeout(() => {
-                    rightClickZone.style.backgroundColor = '#ecf0f1';
-                }, 200);
-            }
+    if (currentClicks >= requiredClicks) {
+        balance += rewardAmount;
+        requiredClicks += 5;
+        currentClicks = 0;
 
-            updateUI();
-        });
+        rightClickZone.style.backgroundColor = '#abebc6';
 
+        setTimeout(() => {
+            rightClickZone.style.backgroundColor = '#ecf0f1';
+        }, 200);
+    }
+
+    updateUI();
+});
         // Uruchomienie przy starcie strony
         updateUI();
     </script>
