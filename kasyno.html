@@ -893,20 +893,6 @@
             }
         }
 
-        /* =====================================================================
-           5. DOŁADOWANIE PRAWYM PRZYCISKIEM (ROSĄCE: 5, 10, 15, 20...)
-           ===================================================================== */
-        function openTopUpModal() {
-            if (state.isSpinning) return;
-            state.requiredClicks = loadRequiredClicks();
-            state.currentClicks = 0;
-            document.getElementById('currentClicks').textContent = state.currentClicks;
-            document.getElementById('requiredClicks').textContent = state.requiredClicks;
-            const modal = document.getElementById('topupModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
         function closeTopUpModal() {
             const modal = document.getElementById('topupModal');
             modal.classList.add('hidden');
