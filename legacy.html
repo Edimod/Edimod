@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>EDIMOD - Katalog Zasobów i Systemów (1996)</title>
+    <style>
+        body {
+            background-color: #FFFFFF;
+            color: #000000;
+            font-family: "Times New Roman", Times, serif;
+            margin: 10px;
+        }
+        a { color: #0000EE; text-decoration: underline; }
+        a:visited { color: #551A8B; }
+        a:active { color: #FF0000; }
+
+        /* Wypukłe przyciski 3D w stylu Windows 95 / Netscape */
+        .win95-btn {
+            background-color: #C0C0C0;
+            border-top: 2px solid #FFFFFF;
+            border-left: 2px solid #FFFFFF;
+            border-right: 2px solid #808080;
+            border-bottom: 2px solid #808080;
+            padding: 3px 6px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            font-weight: bold;
+            color: #000000;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .win95-btn:active {
+            border-top: 2px solid #808080;
+            border-left: 2px solid #808080;
+            border-right: 2px solid #FFFFFF;
+            border-bottom: 2px solid #FFFFFF;
+        }
+
+        /* Małe kuleczki 3D przy kategoriach */
+        .kulka-3d {
+            display: inline-block;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 4px 4px, #FFFFFF 10%, #CC0000 55%, #400000 95%);
+            border: 1px solid #666666;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        /* Logo EDIMOD */
+        .logo-kula {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 25px 25px, #FFFFFF 5%, #003399 60%, #000033 95%);
+            border: 2px outset #CCCCCC;
+            color: #FFFF00;
+            font-family: "Courier New", monospace;
+            font-weight: bold;
+            font-size: 26px;
+            line-height: 75px;
+            text-align: center;
+            box-shadow: 4px 4px 6px #999999;
+        }
+
+        /* Własne pikselowe ikonki menu zrobione z ramek */
+        .ikona-box {
+            width: 34px;
+            height: 34px;
+            margin: 0 auto 3px auto;
+            border: 2px outset #DCDCDC;
+            font-family: "Courier New", monospace;
+            font-weight: bold;
+            line-height: 34px;
+            font-size: 14px;
+        }
+
+        /* Styl linii oddzielających działy na dole */
+        .linia-dzialu {
+            border: 0;
+            border-top: 1px solid #000000;
+            margin: 6px 0;
+        }
+    </style>
+</head>
+<body id="top">
+
+<center>
+    <!-- GÓRNA SEKCJA Z LOGO I BANERKAMI BOCZNYMI -->
+    <table border="0" width="760" cellpadding="4" cellspacing="0">
+        <tr>
+            <td align="center" width="120">
+                <div class="logo-kula">E/M</div>
+            </td>
+            <td align="center">
+                <font face="Arial, Helvetica, sans-serif" size="7" color="#0000CC" style="letter-spacing: 3px;">EDIMOD</font><br>
+                <font face="Courier New, monospace" size="2"><b>[ POLSKI SERWIS SYSTEMOWY, PRASOWY I ROZRYWKOWY ]</b></font>
+            </td>
+            <td align="right" width="170">
+                <table border="2" bgcolor="#990000" width="165" cellpadding="2" cellspacing="0">
+                    <tr><td align="center"><font color="#FFFF00" size="1" face="Arial"><b>TOP 100 SYSTEMÓW WWW</b></font></td></tr>
+                </table>
+                <table border="2" bgcolor="#000080" width="165" cellpadding="2" cellspacing="0">
+                    <tr><td align="center"><font color="#FFFFFF" size="1" face="Arial"><b>GRUPA DYSKUSYJNA</b></font></td></tr>
+                </table>
+                <table border="2" bgcolor="#004400" width="165" cellpadding="2" cellspacing="0">
+                    <tr><td align="center"><font color="#00FF00" size="1" face="Courier New"><b>TERMINAL EDIMOD BBS</b></font></td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- POZIOMY PASEK PRZEWIJAJĄCY SIĘ -->
+    <table border="1" width="760" bgcolor="#FFFFCC" cellpadding="3" cellspacing="0">
+        <tr>
+            <td>
+                <marquee behavior="scroll" direction="left" scrollamount="4">
+                    <font face="Courier New, monospace" size="2" color="#CC0000">
+                        <b>* WITAMY NA STRONIE EDIMOD! *</b>Nie zapomnijcie Zaobserwować nas na portalach jak Gadu-Gadu, Nasza Klasa, Facebook i Twitter! &nbsp;&nbsp;&nbsp;
+                    </font>
+                </marquee>
+            </td>
+        </tr>
+    </table>
+
+    <!-- MENU IKONOWE -->
+    <table border="0" cellpadding="6" cellspacing="4">
+        <tr align="center">
+            <td>
+                <a href="#nowosci" style="text-decoration:none;">
+                    <div class="ikona-box" style="background:#FF6600; color:#FFFF00;">HOT!</div>
+                    <font size="1" face="Arial" color="#0000EE"><u><b>NOWOŚCI</b></u></font>
+                </a>
+            </td>
+            <td>
+                <a href="#dodaj" style="text-decoration:none;">
+                    <div class="ikona-box" style="background:#3366CC; color:#FFFFFF;">+</div>
+                    <font size="1" face="Arial" color="#0000EE"><u><b>DODAJ URL</b></u></font>
+                </a>
+            </td>
+            <td>
+                <a href="#losuj" style="text-decoration:none;">
+                    <div class="ikona-box" style="background:#CC0000; color:#FFFFFF;">?</div>
+                    <font size="1" face="Arial" color="#0000EE"><u><b>LOSOWY LINK</b></u></font>
+                </a>
+            </td>
+            <td>
+                <a href="mailto:poczta@edimod.pl" style="text-decoration:none;">
+                    <div class="ikona-box" style="background:#FFFF99; color:#000080;">@&gt;</div>
+                    <font size="1" face="Arial" color="#0000EE"><u><b>POCZTA E-MAIL</b></u></font>
+                </a>
+            </td>
+        </tr>
+    </table>
+
+    <!-- WYSZUKIWARKA -->
+    <form action="#" method="get">
+        <table border="0" cellpadding="2">
+            <tr>
+                <td><input type="submit" value="Szukaj" class="win95-btn"></td>
+                <td><input type="text" size="34" name="szukaj" style="border: 2px inset #CCCCCC; font-family: Courier New;"></td>
+            </tr>
+        </table>
+    </form>
+
+    <table border="2" width="468" height="60" bgcolor="#000066" cellpadding="4" cellspacing="0">
+        <tr>
+            <td align="center">
+                <table border="2" bordercolor="#FFFF00" bgcolor="#000099" cellpadding="2" cellspacing="0">
+                    <tr>
+                        <td align="center" style="padding: 2px 12px;">
+                            <font face="Arial, Helvetica, sans-serif" color="#FFFF00" size="3"><b>Serwis GMS</b></font>
+                        </td>
+                    </tr>
+                </table>
+                <font face="Courier New, monospace" color="#FFFFFF" size="1">Nokie 3000,3010,3200</font>
+            </td>
+        </tr>
+    </table>
+    <font size="2">
+        <a href="#reklama">Kup Reklame na naszej stronie</a>
+    </font>
+
+    <hr width="760" size="2">
+
+    <!-- KATALOG GŁÓWNY (WSZYSTKIE LINKI PROWADZĄ DO SWOICH SEKCJI NA DOLE) -->
+    <table border="0" width="760" cellpadding="8" cellspacing="4">
+        <tr valign="top">
+            <!-- KOLUMNA LEWA -->
+            <td width="35%">
+                <span class="kulka-3d"></span> <font size="4"><a href="#gry"><b>Gry Komputerowe</b></a></font><br>
+                <font size="2">
+                    <a href="#gry-shareware">Shareware i Demo</a>, <a href="#gry-kody">Kody i Tipsy</a>, <a href="#gry-doom">DOOM / Duke3D</a>, <a href="#gry-inne">itp.</a>
+                </font>
+                <br><br>
+
+                <span class="kulka-3d"></span> <font size="4"><a href="#firma"><b>Lotto</b></a></font><br>
+                <font size="2">
+                    <a href="#firma-profil">Profil Działalności</a>, <a href="#firma-wdrozenia">Wdrożenia</a>, <a href="#firma-cennik">Cennik Usług</a>, <a href="#firma-inne">itp.</a>
+                </font>
+            </td>
+
+            <!-- KOLUMNA ŚRODKOWA -->
+            <td width="35%">
+                <span class="kulka-3d"></span> <font size="4"><a href="#systemy"><b>Systemy Operacyjne</b></a></font><br>
+                <font size="2">
+                    <a href="#sys-dos">MS-DOS 6.22</a>, <a href="#sys-win">Windows 95 / NT</a>, <a href="#sys-linux">Linux</a>, <a href="#sys-sterowniki">Sterowniki</a>, <a href="#sys-inne">itp.</a>
+                </font>
+                <br><br>
+
+                <span class="kulka-3d"></span> <font size="4"><a href="#info"><b>Info i Bazy Danych</b></a></font><br>
+                <font size="2">
+                    <a href="#info-wiadomosci">Wiadomości z Kraju</a>, <a href="#info-waluty">Kursy Walut</a>, <a href="#info-pkp">Rozkład PKP</a>, <a href="#info-inne">itp.</a>
+                </font>
+                <br><br>
+
+                <span class="kulka-3d"></span> <font size="4"><a href="#sieci"><b>Komputery i Sieci</b></a></font><br>
+                <font size="2">
+                    <a href="#sieci-modemy">Modemy i BBS</a>, <a href="#sieci-irc">Kanały IRC</a>, <a href="#sieci-usenet">Usenet</a>, <a href="#sieci-inne">itp.</a>
+                </font>
+            </td>
+
+    <table border="0" width="760" cellpadding="0" cellspacing="0" align="center">
+        <tr>
+            <td align="left">
+
+                <!-- 1. GRY KOMPUTEROWE -->
+                <div id="gry">
+                    <hr class="linia-dzialu">
+                    <font size="4"><b>Gry Komputerowe</b></font> &nbsp; <font size="1"><a href="#top">[góra]</a></font>
+                    <hr class="linia-dzialu">
+                    
+                    <div id="gry-shareware">
+                        <b>* Shareware i Demo</b><br>
+                        Tu mogę pisać co chce o wersjach shareware i demo...<br><br>
+                    </div>
+
+                    <div id="gry-kody">
+                        <b>* Kody i Tipsy</b><br>
+                        Tu mogę pisać co chce o kodach i solucjach do gier...<br><br>
+                    </div>
+
+                    <div id="gry-doom">
+                        <b>* DOOM / Duke3D</b><br>
+                        Tu mogę pisać co chce o grach DOOM, Duke Nukem 3D, Quake...<br><br>
+                    </div>
+
+                    <div id="gry-inne">
+                        <b>* Inne gry (itp.)</b><br>
+                        Tu mogę pisać co chce o pozostałych grach...<br>
+                    </div>
+                    <hr class="linia-dzialu">
+                </div>
+
+                <br>
+
+                <!-- 2. GAZETY I CZASOPISMA -->
+                <div id="gazety">
+                    <hr class="linia-dzialu">
+                    <font size="4"><b>Gazety i Czasopisma</b></font> &nbsp; <font size="1"><a href="#top">[góra]</a></font>
+                    <hr class="linia-dzialu">
+
+                    <div id="gazety-prasa">
+                        <b>* Prasa Codzienna</b><br>
+                        Tu mogę pisać co chce o prasie codziennej...<br><br>
+                    </div>
+
+                    <div id="gazety-komp">
+                        <b>* Magazyny Komputerowe</b><br>
+                        Tu mogę pisać co chce o Bajtku, Secret Service, Top Secret...<br><br>
+                    </div>
+
+                    <div id="gazety-archiwum">
+                        <b>* Archiwum</b><br>
+                        Tu mogę pisać co chce o archiwalnych numerach...<br><br>
+                    </div>
+
+                    <div id="gazety-inne">
+                        <b>* Inne czasopisma (itp.)</b><br>
+                        Tu mogę pisać co chce o innych wydawnictwach...<br>
+                    </div>
+                    <hr class="linia-dzialu">
+                </div>
+
+                <br>
+
+                <!-- 3. FIRMA EDIMOD -->
+                <div id="firma">
+                    <hr class="linia-dzialu">
+                    <font size="4"><b>Firma Edimod</b></font> &nbsp; <font size="1"><a href="#top">[góra]</a></font>
+                    <hr class="linia-dzialu">
+
+                    <div id="firma-profil">
+                        <b>* Profil Działalności</b><br>
+                        Tu mogę pisać co chce o działalności firmy Edimod...<br><br>
+                    </div>
+
+                    <div id="firma-wdrozenia">
+                        <b>* Wdrożenia</b><br>
+                        Tu mogę pisać co chce o naszych realizacjach i wdrożeniach...<br><br>
+                    </div>
+
+                    <div id="firma-cennik">
+                        <b>* Cennik Usług</b><br>
+                        Tu mogę pisać co chce o cenach i ofercie...<br><br>
+                    </div>
+
+                    <div id="firma-inne">
+                        <b>* Kontakt i inne informacje (itp.)</b><br>
+                        Tu mogę pisać co chce (adres, telefon, faks)...<br>
+                    </div>
+                    <hr class="linia-dzialu">
+                </div>
+
+                <br>
+
+                <!-- 4. SYSTEMY OPERACYJNE -->
+                <div id="systemy">
+                    <hr class="linia-dzialu">
+                    <font size="4"><b>Systemy Operacyjne</b></font> &nbsp; <font size="1"><a href="#top">[góra]</a></font>
+                    <hr class="linia-dzialu">
+
+                    <div id="sys-dos">
+                        <b>* MS-DOS 6.22</b><br>
+                        Tu mogę pisać co chce o systemie MS-DOS, plikach autoexec.bat i config.sys...<br><br>
+                    </div>
+
+                    <div id="sys-win">
+                        <b>* Windows 95 / NT</b><br>
+                        Tu mogę pisać co chce o Windows 95 i Windows NT...<br><br>
+                    </div>
+
+                    <div id="sys-linux">
+                        <b>* Linux</b><br>
+                        Tu mogę pisać co chce o dystrybucjach Linuxa...<br><br>
+                    </div>
+
+                    <div id="sys-sterowniki">
+                        <b>* Sterowniki</b><br>
+                        Tu mogę pisać co chce o sterownikach do kart graficznych, muzycznych i modemów...<br><br>
+                    </div>
+
+                    <div id="sys-inne">
+                        <b>* Inne systemy (itp.)</b><br>
+                        Tu mogę pisać co chce o OS/2 i innych systemach...<br>
+                    </div>
+                    <hr class="linia-dzialu">
+                </div>
+
+                <br>
+
+                <!-- 5. INFO I BAZY DANYCH -->
+                <div id="info">
+                    <hr class="linia-dzialu">
+                    <font size="4"><b>Info i Bazy Danych</b></font> &nbsp; <font size="1"><a href="#top">[góra]</a></font>
+                    <hr class="linia-dzialu">
+
+                    <div id="info-wiadomosci">
+                        <b>* Wiadomości z Kraju</b><br>
+                        Tu mogę pisać co chce o aktualnych wydarzeniach...<br><br>
+                    </div>
+
+                    <div id="info-waluty">
+                        <b>* Kursy Walut</b><br>
+                        Tu mogę pisać co
