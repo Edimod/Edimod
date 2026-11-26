@@ -49,19 +49,17 @@ header {
     background: #000;
     z-index: 1000;
     display: flex;
-    align-items: center;             /* Wyśrodkowanie w pionie (góra-dół) */
-    justify-content: space-between;  /* Logo po lewej, File po prawej */
-    padding: 0 150px;                 /* Odstęp od lewej i prawej krawędzi */
-    box-sizing: border-box;          /* Zapobiega wychodzeniu paska poza ekran */
+    align-items: center;  
+    justify-content: space-between;
+    padding: 0 150px;                
+    box-sizing: border-box;      
 }
-
-        /* Sekcja z kwadratowymi kartami na środku */
         .cards-container {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 20px; /* Odstęp między kwadratami */
-            margin: 60px auto 40px auto; /* Marginesy dookoła sekcji */
+            gap: 20px; 
+            margin: 60px auto 40px auto; 
             max-width: 600px;
             padding: 0 20px;
         }
@@ -72,8 +70,8 @@ header {
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            width: 140px;          /* Zmniejszony wymiar */
-            height: 140px;         /* Idealny kwadrat */
+            width: 140px;          
+            height: 140px;         
             background-color: #ffffff;
             border: 2px solid #e0e0e0;
             border-radius: 12px;
@@ -96,8 +94,7 @@ header {
             font-size: 2.2rem;
             margin-bottom: 8px;
         }
-
-        /* Prawy górny guzik */
+            
         .guzik-prawy-gorny {
             position: fixed;
             top: 10px;
@@ -119,7 +116,6 @@ header {
             transform: scale(1.05);
         }
 
-        /* Przeciągalny OC */
         .draggable-oc {
             position: fixed;
             bottom: 50px;
@@ -137,7 +133,6 @@ header {
             cursor: grabbing;
         }
 
-        /* Mniejszy OC na telefonach */
         @media (max-width: 600px) {
             .draggable-oc {
                 width: 70px;
