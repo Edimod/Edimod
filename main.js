@@ -1,7 +1,6 @@
 (function () {
     'use strict';
 
-    // --- 0. REJESTRACJA SERVICE WORKERA EDIMOD PWA ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js', {
@@ -16,8 +15,7 @@
             });
         });
     }
-
-    // --- 1. DŹWIĘK KLIKNIĘCIA ---
+    
     const clickSound = new Audio('click.mp3');
     clickSound.volume = 0.25;
 
@@ -26,7 +24,6 @@
         clickSound.play().catch(err => {});
     });
 
-    // --- 2. OBSŁUGA CUSTOMOWEGO KURSORA ---
     const customCursor = document.querySelector('.custom-cursor.site-wide');
 
     if (customCursor) {
@@ -66,10 +63,8 @@
         });
     }
 
-    // --- 3. LOGIKA PO ZAŁADOWANIU STRONY ---
     document.addEventListener('DOMContentLoaded', () => {
 
-        // --- A. SWOBODNE PRZECIĄGANIE OC ---
         const ocImg = document.getElementById('draggable-oc');
 
         if (ocImg) {
@@ -105,7 +100,6 @@
                 }
             }
 
-            // Obsługa myszki (komputer)
             ocImg.addEventListener('mousedown', (e) => {
                 startDrag(e.clientX, e.clientY);
                 e.preventDefault();
@@ -119,7 +113,6 @@
                 isDragging = false;
             });
 
-            // Obsługa dotyku (telefon)
             ocImg.addEventListener('touchstart', (e) => {
                 const touch = e.touches[0];
                 startDrag(touch.clientX, touch.clientY);
@@ -138,8 +131,6 @@
             });
         }
 
-
-        // --- B. Obsługa rozwijanego menu "File" ---
         const dropdown = document.querySelector('.dropdown');
         const dropdownBtn = document.querySelector('.dropdown-btn');
 
@@ -154,7 +145,6 @@
             });
         }
 
-        // --- C. Napis na środku strony ---
         const textElement = document.getElementById('welcome-text');
         if (textElement) {
             const now = new Date();
@@ -220,11 +210,10 @@
             }
         }
 
-        // --- D. Dynamiczny tytuł karty ---
         const originalTitle = document.title;
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                document.title = "Wróć do nas 😢";
+                document.title = "Bardzo śmieszne😫";
             } else {
                 document.title = originalTitle;
             }
@@ -243,7 +232,7 @@ const messages = [
   "Nei pozwalam.",
   "Pls.",
   "Nie.",
-  "Dobra, jak jesteś taki, to masz."
+  "Nie bój dupy."
 ];
 
 document.addEventListener("contextmenu", function(event) {
@@ -251,7 +240,7 @@ document.addEventListener("contextmenu", function(event) {
   if (allowNextContextMenu) {
     allowNextContextMenu = false;
     rightClickStage = 0;
-    return; // Normalne menu przeglądarki!
+    return;
   }
 
   event.preventDefault();
